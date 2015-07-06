@@ -1,2 +1,4 @@
-asyncio
-aiohttp
+aiohttp==0.16.5
+beautifulsoup4==4.4.0
+chardet==2.3.0
+wheel==0.24.0
