@@ -8,7 +8,7 @@ class Actor:
         self.inbox = asyncio.Queue()
         self._running = False
         self.timeout = timeout
-        
+
     @property
     def running(self):
         return self._running
@@ -17,7 +17,7 @@ class Actor:
     def _run(self):
         while self._running:
             msg = yield from asyncio.wait_for(self.inbox.get(), self.timeout)
-            self.on_message(msg)
+            result = yield from self.on_message(msg)
 
     @coroutine
     def on_message(self, message):
