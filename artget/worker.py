@@ -6,7 +6,6 @@ logging.basicConfig(level=logging.DEBUG)
 
 import asyncio
 from asyncio import Queue, QueueEmpty
-import aiohttp
 
 from .job import GetJob, ParseJob, DownloadJob
 from .util import filename_from_url
@@ -20,18 +19,27 @@ class Worker(object):
 
     _id = 0
 
-    def __init__(self, app):
+    def __init__(self, app, client):
 
         self.id = Worker.newid()
         self.name = 'Worker-{}'.format(self.id)
         self.running = False
         self.app = app
+        self._client = client
+        self._timeout = 10
 
     @classmethod
     def newid(cls):
         _id = cls._id
         cls._id += 1
         return _id
+
+    @asyncio.coroutine
+    def get(self, url):
+        # TODO: Properly handle timeout
+        #response = yield from asyncio.wait_for(self._client.get(url), self._timeout)
+        response = yield from self._client.get(url)
+        return response
 
     def stop(self):
         self.running = False
@@ -50,7 +58,7 @@ class Worker(object):
                 logging.debug(job)
 
                 logging.info('{}: GET {}'.format(self, job.url))
-                response = yield from aiohttp.request('GET', job.url)
+                response = yield from self.get(job.url)
                 logging.info('{}: {} {}'.format(self, response.status, job.url))
 
                 if response.status >= 400:
@@ -66,8 +74,10 @@ class Worker(object):
                 body = yield from response.read()
 
                 self.app.parse_queue.put_nowait(ParseJob(job.key, body))
+                response.close()
 
             except QueueEmpty:
+                #logging.debug('%s Queue empty' % self)
                 yield from asyncio.sleep(self.app.config.sleep)
 
     @asyncio.coroutine
@@ -117,7 +127,8 @@ class Worker(object):
 
                 job = self.app.download_queue.get_nowait()
 
-                r = yield from aiohttp.request('GET', job.url)
+                r = yield from self.get(job.url)
+                logging.info('Downloading {}: {} {}'.format(self, r.status, job.url))
 
                 if r.status >= 400:
                     if job.retries > 0:
@@ -139,7 +150,10 @@ class Worker(object):
                             break
                         fp.write(chunk)
 
+                r.close()
                 os.rename(temp_filepath, filepath)
+
+                logging.info('Done {}: {} '.format(self, job.url))
 
             except QueueEmpty:
                 yield from asyncio.sleep(self.app.config.sleep)

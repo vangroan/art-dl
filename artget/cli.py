@@ -33,7 +33,7 @@ def parse_args():
     parser.add_argument(
         '--sleep', '-s',
         dest='sleep',
-        default=0.5
+        default=1
     )
 
     return parser.parse_args()

@@ -4,6 +4,8 @@ from asyncio import Queue
 import os
 import signal
 
+import aiohttp
+
 from .scraper import DeviantartScraper
 from .worker import Worker
 from .job import GetJob
@@ -79,27 +81,28 @@ class Application(object):
         for key, scraper in self.scrapers.items():
             self.get_queue.put_nowait(GetJob(key, scraper.get_rss_url()))
 
+        loop = asyncio.get_event_loop()
+        client = aiohttp.ClientSession(loop=loop)
+
         tasks = []
 
         # Get XML workers
         for i in range(NUM_GET_WORKERS):
-            w = Worker(self)
+            w = Worker(self, client)
             self.workers.append(w)
             tasks.append(asyncio.async(w.run_get()))
 
         # Download workers
         for i in range(NUM_PARSE_WORKERS):
-            w = Worker(self)
+            w = Worker(self, client)
             self.workers.append(w)
             tasks.append(asyncio.async(w.run_parse()))
 
         # Download workers
         for i in range(self.config.workers):
-            w = Worker(self)
+            w = Worker(self, client)
             self.workers.append(w)
             tasks.append(asyncio.async(w.run_download()))
-
-        loop = asyncio.get_event_loop()
 
         for signame in ('SIGINT', 'SIGTERM'):
             # NotImplemented on Windows
@@ -113,7 +116,8 @@ class Application(object):
             print('Shutting down...')
             self.stop()
         finally:
-            loop.close()
+            client.close()
+            #loop.close()
             pass
 
 
