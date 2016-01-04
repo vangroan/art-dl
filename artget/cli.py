@@ -27,7 +27,7 @@ def parse_args():
     parser.add_argument(
         '--workers', '-w',
         dest='workers',
-        default=15
+        default=4
     )
 
     parser.add_argument(
