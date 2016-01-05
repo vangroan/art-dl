@@ -19,7 +19,7 @@ class Worker(object):
 
     _id = 0
 
-    def __init__(self, app, client):
+    def __init__(self, app, client, debug=False):
 
         self.id = Worker.newid()
         self.name = 'Worker-{}'.format(self.id)
@@ -27,6 +27,7 @@ class Worker(object):
         self.app = app
         self._client = client
         self._timeout = 10
+        self._debug = debug
 
     @classmethod
     def newid(cls):
@@ -37,8 +38,8 @@ class Worker(object):
     @asyncio.coroutine
     def get(self, url):
         # TODO: Properly handle timeout
-        #response = yield from asyncio.wait_for(self._client.get(url), self._timeout)
-        response = yield from self._client.get(url)
+        response = yield from asyncio.wait_for(self._client.get(url), self._timeout)
+        #response = yield from self._client.get(url)
         return response
 
     def stop(self):
@@ -51,6 +52,8 @@ class Worker(object):
 
         while self.running:
 
+            response = None
+
             try:
 
                 job = self.app.get_queue.get_nowait()
@@ -60,7 +63,7 @@ class Worker(object):
                 logging.info('{}: GET {}'.format(self, job.url))
                 response = yield from self.get(job.url)
                 logging.info('{}: {} {}'.format(self, response.status, job.url))
-
+                
                 if response.status >= 400:
                     if job.retries > 0:
                         job.retry()
@@ -74,11 +77,14 @@ class Worker(object):
                 body = yield from response.read()
 
                 self.app.parse_queue.put_nowait(ParseJob(job.key, body))
-                response.close()
+                #response.close()
 
             except QueueEmpty:
-                #logging.debug('%s Queue empty' % self)
                 yield from asyncio.sleep(self.app.config.sleep)
+            finally:
+                if response:
+                    response.close()
+
 
     @asyncio.coroutine
     def run_parse(self):
@@ -114,8 +120,8 @@ class Worker(object):
                     logging.warning('{}: No images found for {}'.format(self, job))
 
             except QueueEmpty:
-
                 yield from asyncio.sleep(self.app.config.sleep)
+
 
     @asyncio.coroutine
     def run_download(self):
@@ -123,6 +129,9 @@ class Worker(object):
         running = True
 
         while running:
+
+            r = None
+
             try:
 
                 job = self.app.download_queue.get_nowait()
@@ -157,6 +166,10 @@ class Worker(object):
 
             except QueueEmpty:
                 yield from asyncio.sleep(self.app.config.sleep)
+            finally:
+                if r:
+                    r.close()
+
 
     def __repr__(self):
         return '<{}>'.format(self.name)

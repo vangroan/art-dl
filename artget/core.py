@@ -82,25 +82,26 @@ class Application(object):
             self.get_queue.put_nowait(GetJob(key, scraper.get_rss_url()))
 
         loop = asyncio.get_event_loop()
+        loop.set_debug(self.config.debug)
         client = aiohttp.ClientSession(loop=loop)
 
         tasks = []
 
         # Get XML workers
         for i in range(NUM_GET_WORKERS):
-            w = Worker(self, client)
+            w = Worker(self, client, debug=self.config.debug)
             self.workers.append(w)
             tasks.append(asyncio.async(w.run_get()))
 
         # Download workers
         for i in range(NUM_PARSE_WORKERS):
-            w = Worker(self, client)
+            w = Worker(self, client, debug=self.config.debug)
             self.workers.append(w)
             tasks.append(asyncio.async(w.run_parse()))
 
         # Download workers
         for i in range(self.config.workers):
-            w = Worker(self, client)
+            w = Worker(self, client, debug=self.config.debug)
             self.workers.append(w)
             tasks.append(asyncio.async(w.run_download()))
 
@@ -110,16 +111,29 @@ class Application(object):
             #                        lambda: self.stop())
             pass
 
+        tasks = asyncio.gather(*tasks)
+
         try:
-            loop.run_until_complete(asyncio.wait(tasks))
+            loop.run_until_complete(tasks)
         except KeyboardInterrupt:
             print('Shutting down...')
+
+            print('Stopping workers Tasks')
             self.stop()
+
+            print('Cancelling Tasks')
+            all_tasks = asyncio.gather(*asyncio.Task.all_tasks())
+            all_tasks.cancel()
+
+            print('Restarting loop')
+            #loop.stop()
+            loop.run_forever()
+
+            tasks.exception() # Avoid warning for not fetching Exceptions
+            all_tasks.exception()
+
+            print('Done')
         finally:
             client.close()
-            #loop.close()
-            pass
-
-
-
-
+            loop.close()
+            

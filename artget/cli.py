@@ -36,6 +36,19 @@ def parse_args():
         default=1
     )
 
+    parser.add_argument(
+        '--debug',
+        action='store_true',
+        default=False,
+    )
+
+    parser.add_argument(
+        '--timeout',
+        type=int,
+        default=5,
+        help='General timeout for requests'
+    )
+
     return parser.parse_args()
 
 def main():
