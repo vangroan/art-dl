@@ -1,34 +1,60 @@
+# Restructuring scraper
+#
+# Notes:
+#   Coroutines for requesting an html page start with 'fetch_*'
+#   Coroutines for streaming larger files start with 'download_*'
+#   Methods for scraping pages start with 'scrape_*'
+#   The concrete scraper is responsible for choosing it's parsing tools
 
+import asyncio
+from asyncio import coroutine
 import os
-from urllib.parse import urlencode
+from shutil import move
 
-from .util import check_or_make_dir
 
-class DeviantartScraper(object):
+class ScrapingException(Exception): pass
 
-    def __init__(self, username, host_url, out_directory):
 
-        self.username = username
-        self.host_url = host_url
-        self.out_directory = os.path.join(out_directory, username)
+# TODO: Save urls to file for faster skipping of seen pages
+class Scraper:
 
-        check_or_make_dir(self.out_directory)
+    def __init__(self, http_client):
+        self.client = http_client
 
-    def get_query_string(self):
-        return 'gallery:{}'.format(self.username)
+    @coroutine
+    def get(self, url, timeout=30):
+        return (yield from self.client.get_throttled(url, timeout=timeout))
 
-    def get_rss_url(self):
-        url = self.host_url + '?' + urlencode(
-            {
-                'type' : 'deviation',
-                'q' : self.get_query_string()
-            }
-        )
-        return url
+    @coroutine
+    def get_body(self, url):
+        response = yield from self.get(url)
+        status = response.status
+        body = yield from response.read()
+        response.close()
+        return status, body
 
-    def get_image_filepath(self, filename):
-        return os.path.join(self.out_directory, filename)
+    @coroutine
+    def download(self, url, target_file, overwrite=False):
 
-    def image_exists(self, filename):
-        return os.path.exists(self.get_image_filepath(filename))
+        if os.path.exists(target_file) and not overwrite:
+            return
+
+        response = yield from self.get(url)
+        partial_file = target_file + '.part'
+
+        with open(partial_file, 'wb') as fp:
+            chunk_queue = asyncio.Queue()
+            yield from self.client.throttled_content_read(response, chunk_queue)
+            while True:
+                chunk = yield from chunk_queue.get()
+                if not chunk:
+                    break
+                fp.write(chunk)
+
+        move(partial_file, target_file)
+        response.close()
+
+    @coroutine
+    def run(self):
+        raise NotImplementedError('run() is not implemented')
 

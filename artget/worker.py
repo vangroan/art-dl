@@ -1,8 +1,6 @@
 
 import os
 from xml.etree import ElementTree as ET
-import logging
-logging.basicConfig(level=logging.DEBUG)
 
 import asyncio
 from asyncio import Queue, QueueEmpty
