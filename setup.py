@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 setup(
     name = 'artget',
     version = '0.0.1',
-    packages = ['artget'],
+    packages = ['artget', 'artget.scrapers'],
     install_requires = [
         'aiohttp',
         'beautifulsoup4'
