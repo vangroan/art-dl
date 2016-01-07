@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = 'artget',
-    version = '0.0.1',
+    version = '0.0.2b',
     packages = ['artget', 'artget.scrapers'],
     install_requires = [
         'aiohttp',
