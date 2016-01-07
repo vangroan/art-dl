@@ -11,9 +11,11 @@ class ThrottledClient(ClientSession):
         self._semaphore = Semaphore(concurrent_requests)
 
     @coroutine
-    def get_throttled(self, url, timeout):
+    def get_throttled(self, url, timeout, headers=None):
         with (yield from self._semaphore):
-            return (yield from asyncio.wait_for(self.get(url), timeout))
+            return (yield from asyncio.wait_for(self.get(url, 
+                                                    headers=headers,
+                                                    compress=True), timeout))
 
     @coroutine
     def throttled_content_read(self, response, queue):

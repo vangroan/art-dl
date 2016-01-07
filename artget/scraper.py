@@ -23,8 +23,11 @@ class Scraper:
         self.client = http_client
 
     @coroutine
-    def get(self, url, timeout=30):
-        return (yield from self.client.get_throttled(url, timeout=timeout))
+    def get(self, url, timeout=30, headers=None):
+        return (yield from self.client.get_throttled(
+                                url, 
+                                timeout=timeout, 
+                                headers=headers))
 
     @coroutine
     def get_body(self, url):
@@ -57,7 +60,9 @@ class Scraper:
 
     @coroutine
     def run(self):
-        raise NotImplementedError('run() is not implemented')
+        raise NotImplementedError('run() is not implemented for %s' % self)
 
+    def __repr__(self):
+        return '<%s>' % type(self).__name__ 
 
 ScraperResponse = namedtuple('ScraperResponse', ['scraper', 'task'])
