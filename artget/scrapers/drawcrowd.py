@@ -1,15 +1,18 @@
 
 from asyncio import coroutine
 from collections import namedtuple
+import os
+from sys import maxsize
 
 from artget.scraper import Scraper
+from artget.util import check_or_make_dir, filename_from_url
 
 
 class DrawcrowdScraper(Scraper):
 
     def __init__(self, http_client, username, out_dir):
         super().__init__(http_client)
-
+        print('Drawcrowd username: %s' % username)
         self.username = username
         self.out_dir = out_dir
 
@@ -20,6 +23,10 @@ class DrawcrowdScraper(Scraper):
                 username,
                 ctx['output_directory'])
 
+    @property
+    def project_dir(self):
+        return os.path.join(self.out_dir, self.username)
+
     def projects_url(self, offset, limit):
         return 'http://drawcrowd.com/{username}/projects?offset={offset}&sort=newest&limit={limit}'.format(
                 username=self.username,
@@ -29,22 +36,48 @@ class DrawcrowdScraper(Scraper):
 
     @coroutine
     def fetch_projects(self):
+
         offset = 0
         limit = 50
-        url = self.projects_url(offset, limit)
         headers = {
             'Accept' : 'application/json'
         }
-        response = yield from self.get(url, headers=headers)
-        # TODO: Handle failure status code
-        print((yield from response.read()))
-        data = yield from response.json()
-        response.close()
+        projects = []
+        last_length = maxsize
 
-        print(data)
+        while last_length > 0:
+            print('Getting project list offset %d limit %d last_length %d' % (offset, limit, last_length))
+            url = self.projects_url(offset, limit)
+            response = yield from self.get(url, headers=headers)
+
+            # TODO: Handle failure status code
+            data = yield from response.json()
+            for project in data['projects']:
+                projects.append(DrawcrowdScraper.DrawcrowdProject(
+                    project['slug'],
+                    project['title'],
+                    project['original_image']
+                ))
+
+            response.close()
+
+            offset += 50
+
+            last_length = int(data['meta']['length'])
+
+        return projects
 
     @coroutine
     def run(self):
-        yield from self.fetch_projects()
+
+        check_or_make_dir(self.project_dir)
+        projects = yield from self.fetch_projects()
+
+        for project in projects:
+            image_url = project.original_image
+            filename = filename_from_url(image_url)
+            filepath = os.path.join(self.project_dir, filename)
+            os.path.join(self.project_dir, filepath)
+            yield from self.download(image_url, filepath)
 
     DrawcrowdProject = namedtuple('DrawcrowdProject', ['slug', 'title', 'original_image'])
