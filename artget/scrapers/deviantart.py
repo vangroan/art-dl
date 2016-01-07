@@ -26,6 +26,15 @@ class DeviantartScraper(Scraper):
         self.username = username
         self.out_dir = out_dir
 
+    @staticmethod
+    def create_scraper(ctx, username):
+        return DeviantartScraper(ctx['http_client'], username, ctx['output_directory'])
+
+    @staticmethod
+    def create_scraper_for_gallery(ctx, username, gallery):
+        # TODO: Set up scraper so that it downloads only a specified gallery
+        pass
+
     def get_query_string(self):
         return 'gallery:{}'.format(self.username)
 

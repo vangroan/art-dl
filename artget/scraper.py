@@ -8,6 +8,7 @@
 
 import asyncio
 from asyncio import coroutine
+from collections import namedtuple
 import os
 from shutil import move
 
@@ -58,3 +59,5 @@ class Scraper:
     def run(self):
         raise NotImplementedError('run() is not implemented')
 
+
+ScraperResponse = namedtuple('ScraperResponse', ['scraper', 'task'])
