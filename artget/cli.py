@@ -1,12 +1,13 @@
 
 from argparse import ArgumentParser
-import os, sys
+import os
 
 from artget.core import Application
 
 
-def default_output_directory():
-    return os.path.join(os.environ['USERPROFILE'], 'Downloads', 'test')
+def load_include_file(filepath):
+    with open(filepath, 'r') as fp:
+        return [line for line in fp if not line.startswith('#')]
 
 
 def parse_args():
@@ -28,7 +29,7 @@ def parse_args():
     parser.add_argument(
             '--directory', '-d',
             dest='output_directory',
-            default=default_output_directory(),
+            default=os.getcwd(),
             help='Output directory'
         )
 
@@ -70,6 +71,9 @@ def parse_args():
 
 def main():
     args = parse_args()
+
+    if args.include:
+        args.galleries = args.galleries + load_include_file(args.include)
 
     app = Application(args)
     app.run()

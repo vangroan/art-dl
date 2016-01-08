@@ -23,7 +23,7 @@ class Scraper:
         self.client = http_client
 
     @coroutine
-    def get(self, url, timeout=30, headers=None):
+    def get(self, url, timeout=120, headers=None):
         return (yield from self.client.get_throttled(
                                 url, 
                                 timeout=timeout, 

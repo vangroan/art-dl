@@ -4,7 +4,6 @@ from asyncio import get_event_loop
 import logging
 
 from artget.client import ThrottledClient
-from artget.scrapers.deviantart import DeviantartScraper
 from artget.rulematch import PatternRules
 from artget.rules import configure_rules
 
