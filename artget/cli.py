@@ -15,7 +15,7 @@ def parse_args():
 
     parser.add_argument(
             'galleries',
-            nargs='+',
+            nargs='*',
             help='Usernames of deviantart galleries'
         )
 
@@ -74,6 +74,9 @@ def main():
 
     if args.include:
         args.galleries = args.galleries + load_include_file(args.include)
+
+    # Remove empty
+    args.galleries = [g.strip() for g in args.galleries if g.strip()]
 
     app = Application(args)
     app.run()
