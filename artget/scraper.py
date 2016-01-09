@@ -17,6 +17,7 @@ class ScrapingException(Exception): pass
 
 
 # TODO: Save urls to file for faster skipping of seen pages
+# TODO: Use the imghdr module to guess image filetype for files with no extension
 class Scraper:
 
     def __init__(self, http_client):
