@@ -93,6 +93,9 @@ class DeviantartScraper(Scraper):
         soup = BeautifulSoup(dev_page_html, 'html.parser')
         img_nodes = soup.select('img .dev-content-full')
         if not img_nodes:
+            is_mature = bool(soup.select('.dev-content-mature'))
+            if is_mature:
+                return ''
             raise ScrapingException('Could not find image url on deviant page [%s]' % deviation_guid)
         return img_nodes[0]['src']
 
@@ -114,6 +117,11 @@ class DeviantartScraper(Scraper):
             dev_page_html = yield from self.fetch_deviation_page(dev.url)
 
             image_url = self.scrape_deviation_image_url(dev.guid, dev_page_html)
+
+            # Skipping mature content
+            if not image_url:
+                continue
+
             image_filename = filename_from_url(image_url)
 
             yield from self.download_deviation(image_url, image_filename)
