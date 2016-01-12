@@ -65,7 +65,7 @@ class DeviantartScraper(Scraper):
         # TODO: Handle failure status
         return body
 
-    def scrape_deviations_list(self, rss_xml):
+    def scrape_deviations_list(self, rss_xml, namespaces):
         """Using the xml from the rss feed, return lists
         of deviations"""
 
@@ -78,6 +78,8 @@ class DeviantartScraper(Scraper):
                     self.username,
                     item_node.find('guid').text,
                     item_node.find('link').text,
+                    item_node.find('media:content', namespaces).get('medium'),
+                    item_node.find('media:rating', namespaces).text,
             )
             deviations.append(dev)
 
@@ -93,9 +95,6 @@ class DeviantartScraper(Scraper):
         soup = BeautifulSoup(dev_page_html, 'html.parser')
         img_nodes = soup.select('img .dev-content-full')
         if not img_nodes:
-            is_mature = bool(soup.select('.dev-content-mature'))
-            if is_mature:
-                return ''
             raise ScrapingException('Could not find image url on deviant page [%s]' % deviation_guid)
         return img_nodes[0]['src']
 
@@ -113,19 +112,26 @@ class DeviantartScraper(Scraper):
         rss_xml = yield from self.fetch_rss()
 
         # Visit each deviation serially and get the page html
-        for dev in self.scrape_deviations_list(rss_xml):
-            dev_page_html = yield from self.fetch_deviation_page(dev.url)
+        for dev in self.scrape_deviations_list(rss_xml, self._rss_namespaces):
 
-            image_url = self.scrape_deviation_image_url(dev.guid, dev_page_html)
-
-            # Skipping mature content
-            if not image_url:
+            if dev.rating == 'adult':
+                # TODO: Handle mature deviations
+                # Ignore for now
+                print('Ignoring mature deviation [%s]' % dev.url)
                 continue
 
-            image_filename = filename_from_url(image_url)
+            dev_page_html = yield from self.fetch_deviation_page(dev.url)
 
-            yield from self.download_deviation(image_url, image_filename)
+            if dev.medium == 'image':
+                image_url = self.scrape_deviation_image_url(dev.guid, dev_page_html)
+                image_filename = filename_from_url(image_url)
+                yield from self.download_deviation(image_url, image_filename)
+            elif dev.medium == 'document':
+                # TODO: Handle text deviation
+                print('Ignoring text deviation [%s]' % dev.url)
+            else:
+                raise ScrapingException('Unknown medium type %s for [%s]' % (dev.medium, dev.url))
 
         yield from sleep(0.001)
 
-    DeviationPage = namedtuple('DeviationPage', ['username', 'guid', 'url'])
+    DeviationPage = namedtuple('DeviationPage', ['username', 'guid', 'url', 'medium', 'rating'])
