@@ -19,11 +19,12 @@ class Application(object):
         configure_rules(self.rules)
 
     @staticmethod
-    def _create_context_processor(http_client, logger, output_directory):
+    def _create_context_processor(http_client, logger, output_directory, overwrite):
         def context_processor(ctx):
             ctx['http_client'] = http_client
             ctx['output_directory'] = output_directory
             ctx['logger'] = logger
+            ctx['overwrite'] = overwrite
 
         return context_processor
 
@@ -68,7 +69,7 @@ class Application(object):
         try:
             # TODO: Needs readability
             scrapers = [self.rules.dispatch(gallery, context_processor=self._create_context_processor(
-                client, self.create_logger(gallery), self.config.output_directory))
+                client, self.create_logger(gallery), self.config.output_directory, self.config.overwrite))
                 for gallery in self.config.galleries]
 
             tasks = asyncio.gather(*(s.run() for s in scrapers))

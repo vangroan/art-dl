@@ -10,8 +10,8 @@ from art_dl.util import check_or_make_dir, filename_from_url
 
 class DrawcrowdScraper(Scraper):
 
-    def __init__(self, http_client, logger, username, out_dir):
-        super().__init__(http_client, logger)
+    def __init__(self, http_client, logger, username, out_dir, overwrite):
+        super().__init__(http_client, logger, overwrite)
         self.username = username
         self.out_dir = out_dir
 
@@ -24,7 +24,9 @@ class DrawcrowdScraper(Scraper):
                 ctx['http_client'],
                 ctx['logger'],
                 username,
-                ctx['output_directory'])
+                ctx['output_directory'],
+                ctx['overwrite'],
+        )
 
     @property
     def project_dir(self):
@@ -82,7 +84,7 @@ class DrawcrowdScraper(Scraper):
             filename = filename_from_url(image_url)
             file_path = os.path.join(self.project_dir, filename)
             os.path.join(self.project_dir, file_path)
-            yield from self.download(image_url, file_path)
+            yield from self.download(image_url, file_path, self.overwrite)
 
         yield from sleep(0.001)
 

@@ -21,8 +21,8 @@ class DeviantartScraper(Scraper):
         'atom': 'http://www.w3.org/2005/Atom'
     }
 
-    def __init__(self, http_client, logger, username, out_dir):
-        super().__init__(http_client, logger)
+    def __init__(self, http_client, logger, username, out_dir, overwrite):
+        super().__init__(http_client, logger, overwrite)
         self.username = username
         self.out_dir = out_dir
 
@@ -31,7 +31,7 @@ class DeviantartScraper(Scraper):
 
     @staticmethod
     def create_scraper(ctx, username):
-        return DeviantartScraper(ctx['http_client'], ctx['logger'], username, ctx['output_directory'])
+        return DeviantartScraper(ctx['http_client'], ctx['logger'], username, ctx['output_directory'], ctx['overwrite'])
 
     @staticmethod
     def create_scraper_for_gallery(ctx, username, gallery):
@@ -103,8 +103,7 @@ class DeviantartScraper(Scraper):
     @coroutine
     def download_deviation(self, image_url, image_filename):
         file_path = os.path.join(self.deviant_dir, image_filename)
-        self.debug("Downloading " + image_url)
-        yield from self.download(image_url, file_path)
+        yield from self.download(image_url, file_path, self.overwrite)
 
     @coroutine
     def run(self):

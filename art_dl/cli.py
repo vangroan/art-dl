@@ -39,7 +39,6 @@ def parse_args():
             help='Text file containing list of galleries in include'
         )
 
-    # TODO: Implement file download overwrite
     parser.add_argument(
             '--overwrite',
             action='store_true',
