@@ -7,8 +7,8 @@ from xml.etree import ElementTree
 
 from bs4 import BeautifulSoup
 
-from artget.scraper import Scraper, ScrapingException
-from artget.util import check_or_make_dir, filename_from_url
+from art_dl.scraper import Scraper, ScrapingException
+from art_dl.util import check_or_make_dir, filename_from_url
 
 
 class DeviantartScraper(Scraper):
@@ -21,14 +21,17 @@ class DeviantartScraper(Scraper):
         'atom': 'http://www.w3.org/2005/Atom'
     }
 
-    def __init__(self, http_client, username, out_dir):
-        super().__init__(http_client)
+    def __init__(self, http_client, logger, username, out_dir, overwrite):
+        super().__init__(http_client, logger, overwrite)
         self.username = username
         self.out_dir = out_dir
 
+        self.debug("Initialized")
+        self.debug("Out directory: " + self.deviant_dir)
+
     @staticmethod
     def create_scraper(ctx, username):
-        return DeviantartScraper(ctx['http_client'], username, ctx['output_directory'])
+        return DeviantartScraper(ctx['http_client'], ctx['logger'], username, ctx['output_directory'], ctx['overwrite'])
 
     @staticmethod
     def create_scraper_for_gallery(ctx, username, gallery):
@@ -91,7 +94,8 @@ class DeviantartScraper(Scraper):
         # TODO: Handle failure status
         return body
 
-    def scrape_deviation_image_url(self, deviation_guid, dev_page_html):
+    @staticmethod
+    def scrape_deviation_image_url(deviation_guid, dev_page_html):
         soup = BeautifulSoup(dev_page_html, 'html.parser')
         img_nodes = soup.select('img .dev-content-full')
         if not img_nodes:
@@ -100,19 +104,20 @@ class DeviantartScraper(Scraper):
 
     @coroutine
     def download_deviation(self, image_url, image_filename):
-        filepath = os.path.join(self.deviant_dir, image_filename)
-        yield from self.download(image_url, filepath)
+        file_path = os.path.join(self.deviant_dir, image_filename)
+        yield from self.download(image_url, file_path, self.overwrite)
 
     @coroutine
     def run(self):
 
         check_or_make_dir(self.deviant_dir)
 
-        # First get the rss feed which lists the deviantions
+        # First get the rss feed which lists the deviations
         rss_xml = yield from self.fetch_rss()
 
         # Visit each deviation serially and get the page html
         for dev in self.scrape_deviations_list(rss_xml, self._rss_namespaces):
+            self.info(dev.url)
 
             if dev.rating == 'adult':
                 # TODO: Handle mature deviations
@@ -134,4 +139,8 @@ class DeviantartScraper(Scraper):
 
         yield from sleep(0.001)
 
+        self.info("Done")
+
     DeviationPage = namedtuple('DeviationPage', ['username', 'guid', 'url', 'medium', 'rating'])
+
+

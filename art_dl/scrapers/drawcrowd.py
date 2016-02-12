@@ -1,27 +1,33 @@
 
-from asyncio import coroutine
+from asyncio import coroutine, sleep
 from collections import namedtuple
 import os
+from shutil import move
 from sys import maxsize
 
-from artget.scraper import Scraper
-from artget.util import check_or_make_dir, filename_from_url
+from art_dl.scraper import Scraper
+from art_dl.util import check_or_make_dir, filename_from_url
 
 
 class DrawcrowdScraper(Scraper):
 
-    def __init__(self, http_client, username, out_dir):
-        super().__init__(http_client)
-        print('Drawcrowd username: %s' % username)
+    def __init__(self, http_client, logger, username, out_dir, overwrite):
+        super().__init__(http_client, logger, overwrite)
         self.username = username
         self.out_dir = out_dir
+
+        self.debug("Initialized")
+        self.debug("Output directory: " + self.project_dir)
 
     @classmethod
     def create_scraper(cls, ctx, username):
         return cls(
                 ctx['http_client'],
+                ctx['logger'],
                 username,
-                ctx['output_directory'])
+                ctx['output_directory'],
+                ctx['overwrite'],
+        )
 
     @property
     def project_dir(self):
@@ -40,13 +46,13 @@ class DrawcrowdScraper(Scraper):
         offset = 0
         limit = 50
         headers = {
-            'Accept' : 'application/json'
+            'Accept': 'application/json'
         }
         projects = []
         last_length = maxsize
 
         while last_length > 0:
-            print('Getting project list offset %d limit %d last_length %d' % (offset, limit, last_length))
+            self.debug('Getting project list offset %d limit %d last_length %d' % (offset, limit, last_length))
             url = self.projects_url(offset, limit)
             response = yield from self.get(url, headers=headers)
 
@@ -74,10 +80,20 @@ class DrawcrowdScraper(Scraper):
         projects = yield from self.fetch_projects()
 
         for project in projects:
+            self.info(project.original_image)
             image_url = project.original_image
             filename = filename_from_url(image_url)
-            filepath = os.path.join(self.project_dir, filename)
-            os.path.join(self.project_dir, filepath)
-            yield from self.download(image_url, filepath)
+            file_path = os.path.join(self.project_dir, filename)
+            os.path.join(self.project_dir, file_path)
+            yield from self.download(image_url, file_path, self.overwrite)
+
+            # Can only guess file extension after file is done downloading
+            if '.' not in filename:
+                file_ext = self.guess_img_ext(file_path)
+                move(file_path, file_path + '.' + file_ext)
+
+        yield from sleep(0.001)
+
+        self.info("Done")
 
     DrawcrowdProject = namedtuple('DrawcrowdProject', ['slug', 'title', 'original_image'])

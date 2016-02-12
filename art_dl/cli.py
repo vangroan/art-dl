@@ -2,11 +2,11 @@
 from argparse import ArgumentParser
 import os
 
-from artget.core import Application
+from art_dl.core import Application
 
 
-def load_include_file(filepath):
-    with open(filepath, 'r') as fp:
+def load_include_file(file_path):
+    with open(file_path, 'r') as fp:
         return [line for line in fp if not line.startswith('#')]
 
 
@@ -39,7 +39,6 @@ def parse_args():
             help='Text file containing list of galleries in include'
         )
 
-    # TODO: Implement file download overwrite
     parser.add_argument(
             '--overwrite',
             action='store_true',

@@ -3,7 +3,7 @@ from unittest import TestCase
 import sys, os
 
 sys.path.append(os.pardir)
-from artget.signal import Signal, Slot, SignalRunningException
+from art_dl.signal import Signal, Slot, SignalRunningException
 
 class SignallingTest(TestCase):
 

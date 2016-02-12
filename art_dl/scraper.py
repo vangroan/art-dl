@@ -6,9 +6,11 @@
 #   Methods for scraping pages start with 'scrape_*'
 #   The concrete scraper is responsible for choosing it's parsing tools
 
+from abc import ABCMeta, abstractmethod
 import asyncio
 from asyncio import coroutine
 from collections import namedtuple
+import imghdr
 import os
 from shutil import move
 
@@ -17,11 +19,12 @@ class ScrapingException(Exception): pass
 
 
 # TODO: Save urls to file for faster skipping of seen pages
-# TODO: Use the imghdr module to guess image filetype for files with no extension
-class Scraper:
+class Scraper(metaclass=ABCMeta):
 
-    def __init__(self, http_client):
+    def __init__(self, http_client, logger, overwrite):
         self.client = http_client
+        self.logger = logger
+        self.overwrite = overwrite
 
     @coroutine
     def get(self, url, timeout=120, headers=None):
@@ -44,6 +47,8 @@ class Scraper:
         if os.path.exists(target_file) and not overwrite:
             return
 
+        self.debug("Downloading " + url)
+
         response = yield from self.get(url)
         partial_file = target_file + '.part'
 
@@ -56,9 +61,23 @@ class Scraper:
                     break
                 fp.write(chunk)
 
-        move(partial_file, target_file)
         response.close()
+        move(partial_file, target_file)
 
+    @staticmethod
+    def guess_img_ext(filepath):
+        return imghdr.what(filepath)
+
+    def debug(self, message):
+        self.logger.debug(message)
+
+    def info(self, message):
+        self.logger.info(message)
+
+    def warn(self, message):
+        self.logger.warn(message)
+
+    @abstractmethod
     @coroutine
     def run(self):
         raise NotImplementedError('run() is not implemented for %s' % self)

@@ -1,6 +1,9 @@
 
 class SignalRunningException(Exception): pass
+
+
 class CallbackNotFoundException(Exception): pass
+
 
 class Slot:
 
@@ -27,6 +30,7 @@ class Slot:
     def destroy(self):
         self._signal = None
         self._callback = None
+
 
 class Signal:
 
