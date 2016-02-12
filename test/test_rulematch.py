@@ -5,7 +5,7 @@ import sys, os
 import re
 
 sys.path.insert(0, os.path.join(os.pardir))
-from artget.rulematch import RegexRule, PatternRules, RuleException
+from art_dl.rulematch import RegexRule, PatternRules, RuleException
 
 
 class RegexRuleTests(unittest.TestCase):

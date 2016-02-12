@@ -3,9 +3,9 @@ import asyncio
 from asyncio import get_event_loop
 import logging
 
-from artget.client import ThrottledClient
-from artget.rulematch import PatternRules
-from artget.rules import configure_rules
+from art_dl.client import ThrottledClient
+from art_dl.rulematch import PatternRules
+from art_dl.rules import configure_rules
 
 
 class Application(object):

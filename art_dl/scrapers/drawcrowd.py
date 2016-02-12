@@ -4,8 +4,8 @@ from collections import namedtuple
 import os
 from sys import maxsize
 
-from artget.scraper import Scraper
-from artget.util import check_or_make_dir, filename_from_url
+from art_dl.scraper import Scraper
+from art_dl.util import check_or_make_dir, filename_from_url
 
 
 class DrawcrowdScraper(Scraper):

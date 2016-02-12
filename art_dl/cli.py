@@ -2,7 +2,7 @@
 from argparse import ArgumentParser
 import os
 
-from artget.core import Application
+from art_dl.core import Application
 
 
 def load_include_file(filepath):

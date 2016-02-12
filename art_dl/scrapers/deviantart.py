@@ -7,8 +7,8 @@ from xml.etree import ElementTree
 
 from bs4 import BeautifulSoup
 
-from artget.scraper import Scraper, ScrapingException
-from artget.util import check_or_make_dir, filename_from_url
+from art_dl.scraper import Scraper, ScrapingException
+from art_dl.util import check_or_make_dir, filename_from_url
 
 
 class DeviantartScraper(Scraper):

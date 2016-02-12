@@ -1,7 +1,7 @@
 
-from artget.rulematch import PatternRules
-from artget.scrapers.deviantart import DeviantartScraper
-from artget.scrapers.drawcrowd import DrawcrowdScraper
+from art_dl.rulematch import PatternRules
+from art_dl.scrapers.deviantart import DeviantartScraper
+from art_dl.scrapers.drawcrowd import DrawcrowdScraper
 
 
 # TODO: Declarative syntax
