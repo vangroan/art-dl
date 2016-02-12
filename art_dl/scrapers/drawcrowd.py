@@ -76,8 +76,8 @@ class DrawcrowdScraper(Scraper):
         for project in projects:
             image_url = project.original_image
             filename = filename_from_url(image_url)
-            filepath = os.path.join(self.project_dir, filename)
-            os.path.join(self.project_dir, filepath)
-            yield from self.download(image_url, filepath)
+            file_path = os.path.join(self.project_dir, filename)
+            os.path.join(self.project_dir, file_path)
+            yield from self.download(image_url, file_path)
 
     DrawcrowdProject = namedtuple('DrawcrowdProject', ['slug', 'title', 'original_image'])

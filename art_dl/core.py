@@ -17,12 +17,6 @@ class Application(object):
 
         configure_rules(self.rules)
 
-    def seen(self, url):
-        return url in self.closed_set
-
-    def add_seen(self, url):
-        self.closed_set.add(url)
-
     @staticmethod
     def _create_context_processor(http_client, output_directory):
         def context_processor(ctx):
@@ -40,15 +34,12 @@ class Application(object):
         print(self.config)
         loop.set_debug(self.config.debug)
         client = ThrottledClient(loop, self.config.concurrent)
-
-        # Create Scrapers
-        #scrapers = [DeviantartScraper(client, gallery, self.config.output_directory)
-        #            for gallery in self.config.galleries]
+        tasks = None
 
         try:
             context_processor = self._create_context_processor(client, self.config.output_directory)
             scrapers = [self.rules.dispatch(gallery, context_processor=context_processor) 
-                for gallery in self.config.galleries]
+                        for gallery in self.config.galleries]
 
             tasks = asyncio.gather(*(s.run() for s in scrapers))
             loop.run_until_complete(tasks)
@@ -63,7 +54,8 @@ class Application(object):
             print('Restarting loop')
             loop.run_forever()
 
-            tasks.exception()  # Avoid warning for not fetching Exceptions
+            if tasks:
+                tasks.exception()  # Avoid warning for not fetching Exceptions
             all_tasks.exception()
 
             print('Done')

@@ -5,8 +5,8 @@ import os
 from art_dl.core import Application
 
 
-def load_include_file(filepath):
-    with open(filepath, 'r') as fp:
+def load_include_file(file_path):
+    with open(file_path, 'r') as fp:
         return [line for line in fp if not line.startswith('#')]
 
 

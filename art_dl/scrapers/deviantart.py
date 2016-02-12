@@ -98,8 +98,8 @@ class DeviantartScraper(Scraper):
 
     @coroutine
     def download_deviation(self, image_url, image_filename):
-        filepath = os.path.join(self.deviant_dir, image_filename)
-        yield from self.download(image_url, filepath)
+        file_path = os.path.join(self.deviant_dir, image_filename)
+        yield from self.download(image_url, file_path)
 
     @coroutine
     def run(self):
