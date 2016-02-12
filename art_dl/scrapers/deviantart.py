@@ -122,7 +122,7 @@ class DeviantartScraper(Scraper):
             if dev.rating == 'adult':
                 # TODO: Handle mature deviations
                 # Ignore for now
-                print('Ignoring mature deviation [%s]' % dev.url)
+                self.warn('Ignoring mature deviation [%s]' % dev.url)
                 continue
 
             dev_page_html = yield from self.fetch_deviation_page(dev.url)
@@ -133,7 +133,7 @@ class DeviantartScraper(Scraper):
                 yield from self.download_deviation(image_url, image_filename)
             elif dev.medium == 'document':
                 # TODO: Handle text deviation
-                print('Ignoring text deviation [%s]' % dev.url)
+                self.warn('Ignoring text deviation [%s]' % dev.url)
             else:
                 raise ScrapingException('Unknown medium type %s for [%s]' % (dev.medium, dev.url))
 
