@@ -21,14 +21,17 @@ class DeviantartScraper(Scraper):
         'atom': 'http://www.w3.org/2005/Atom'
     }
 
-    def __init__(self, http_client, username, out_dir):
-        super().__init__(http_client)
+    def __init__(self, http_client, logger, username, out_dir):
+        super().__init__(http_client, logger)
         self.username = username
         self.out_dir = out_dir
 
+        self.debug("Initialized")
+        self.debug("Out directory: " + self.deviant_dir)
+
     @staticmethod
     def create_scraper(ctx, username):
-        return DeviantartScraper(ctx['http_client'], username, ctx['output_directory'])
+        return DeviantartScraper(ctx['http_client'], ctx['logger'], username, ctx['output_directory'])
 
     @staticmethod
     def create_scraper_for_gallery(ctx, username, gallery):
@@ -100,6 +103,7 @@ class DeviantartScraper(Scraper):
     @coroutine
     def download_deviation(self, image_url, image_filename):
         file_path = os.path.join(self.deviant_dir, image_filename)
+        self.debug("Downloading " + image_url)
         yield from self.download(image_url, file_path)
 
     @coroutine
@@ -107,11 +111,12 @@ class DeviantartScraper(Scraper):
 
         check_or_make_dir(self.deviant_dir)
 
-        # First get the rss feed which lists the deviantions
+        # First get the rss feed which lists the deviations
         rss_xml = yield from self.fetch_rss()
 
         # Visit each deviation serially and get the page html
         for dev in self.scrape_deviations_list(rss_xml):
+            self.info(dev.url)
             dev_page_html = yield from self.fetch_deviation_page(dev.url)
 
             image_url = self.scrape_deviation_image_url(dev.guid, dev_page_html)
@@ -120,5 +125,7 @@ class DeviantartScraper(Scraper):
             yield from self.download_deviation(image_url, image_filename)
 
         yield from sleep(0.001)
+
+        self.info("Done")
 
     DeviationPage = namedtuple('DeviationPage', ['username', 'guid', 'url'])

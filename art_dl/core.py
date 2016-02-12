@@ -14,16 +14,44 @@ class Application(object):
 
         self.config = config
         self.rules = PatternRules()
+        self.logger = self.create_logger('art-dl')
 
         configure_rules(self.rules)
 
     @staticmethod
-    def _create_context_processor(http_client, output_directory):
+    def _create_context_processor(http_client, logger, output_directory):
         def context_processor(ctx):
             ctx['http_client'] = http_client
             ctx['output_directory'] = output_directory
+            ctx['logger'] = logger
 
         return context_processor
+
+    @staticmethod
+    def create_logger(name):
+        logger = logging.getLogger(name)
+        logger.setLevel(logging.DEBUG)
+
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.DEBUG)
+
+        fmt = logging.Formatter('%(asctime)s (%(name)s) [%(levelname)s] %(message)s')
+        ch.setFormatter(fmt)
+
+        logger.addHandler(ch)
+
+        return logger
+
+    @staticmethod
+    def log_config(logger, config):
+        s = ['Config:\n']
+        for k, v in vars(config).items():
+            s.append('\t')
+            s.append(k)
+            s.append(': ')
+            s.append(str(v))
+            s.append('\n')
+        logger.debug(''.join(s))
 
     def run(self):
 
@@ -32,34 +60,35 @@ class Application(object):
             logging.basicConfig(level=logging.DEBUG)
 
         loop = get_event_loop()
-        print(self.config)
+        self.log_config(self.logger, self.config)
         loop.set_debug(self.config.debug)
         client = ThrottledClient(loop, self.config.concurrent)
         tasks = None
 
         try:
-            context_processor = self._create_context_processor(client, self.config.output_directory)
-            scrapers = [self.rules.dispatch(gallery, context_processor=context_processor)
-                        for gallery in self.config.galleries]
+            # TODO: Needs readability
+            scrapers = [self.rules.dispatch(gallery, context_processor=self._create_context_processor(
+                client, self.create_logger(gallery), self.config.output_directory))
+                for gallery in self.config.galleries]
 
             tasks = asyncio.gather(*(s.run() for s in scrapers))
             loop.run_until_complete(tasks)
 
         except KeyboardInterrupt:
-            print('Shutting down...')
+            self.logger.info('Shutting down...')
 
-            print('Cancelling Tasks')
+            self.logger.info('Cancelling Tasks')
             all_tasks = asyncio.gather(*asyncio.Task.all_tasks())
             all_tasks.cancel()
 
-            print('Restarting loop')
+            self.logger.info('Restarting loop')
             loop.run_forever()
 
             if tasks:
                 tasks.exception()  # Avoid warning for not fetching Exceptions
             all_tasks.exception()
 
-            print('Done')
+            self.logger.info('Done')
         finally:
             client.close()
             loop.close()

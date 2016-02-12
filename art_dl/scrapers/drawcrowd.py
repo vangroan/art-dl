@@ -1,5 +1,5 @@
 
-from asyncio import coroutine
+from asyncio import coroutine, sleep
 from collections import namedtuple
 import os
 from sys import maxsize
@@ -10,16 +10,19 @@ from art_dl.util import check_or_make_dir, filename_from_url
 
 class DrawcrowdScraper(Scraper):
 
-    def __init__(self, http_client, username, out_dir):
-        super().__init__(http_client)
-        print('Drawcrowd username: %s' % username)
+    def __init__(self, http_client, logger, username, out_dir):
+        super().__init__(http_client, logger)
         self.username = username
         self.out_dir = out_dir
+
+        self.debug("Initialized")
+        self.debug("Output directory: " + self.project_dir)
 
     @classmethod
     def create_scraper(cls, ctx, username):
         return cls(
                 ctx['http_client'],
+                ctx['logger'],
                 username,
                 ctx['output_directory'])
 
@@ -46,7 +49,7 @@ class DrawcrowdScraper(Scraper):
         last_length = maxsize
 
         while last_length > 0:
-            print('Getting project list offset %d limit %d last_length %d' % (offset, limit, last_length))
+            self.debug('Getting project list offset %d limit %d last_length %d' % (offset, limit, last_length))
             url = self.projects_url(offset, limit)
             response = yield from self.get(url, headers=headers)
 
@@ -74,10 +77,15 @@ class DrawcrowdScraper(Scraper):
         projects = yield from self.fetch_projects()
 
         for project in projects:
+            self.info(project.original_image)
             image_url = project.original_image
             filename = filename_from_url(image_url)
             file_path = os.path.join(self.project_dir, filename)
             os.path.join(self.project_dir, file_path)
             yield from self.download(image_url, file_path)
+
+        yield from sleep(0.001)
+
+        self.info("Done")
 
     DrawcrowdProject = namedtuple('DrawcrowdProject', ['slug', 'title', 'original_image'])

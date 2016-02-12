@@ -20,8 +20,9 @@ class ScrapingException(Exception): pass
 # TODO: Use the imghdr module to guess image filetype for files with no extension
 class Scraper:
 
-    def __init__(self, http_client):
+    def __init__(self, http_client, logger):
         self.client = http_client
+        self.logger = logger
 
     @coroutine
     def get(self, url, timeout=120, headers=None):
@@ -58,6 +59,15 @@ class Scraper:
 
         move(partial_file, target_file)
         response.close()
+
+    def debug(self, message):
+        self.logger.debug(message)
+
+    def info(self, message):
+        self.logger.info(message)
+
+    def warn(self, message):
+        self.logger.warn(message)
 
     @coroutine
     def run(self):
