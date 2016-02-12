@@ -40,7 +40,7 @@ class DrawcrowdScraper(Scraper):
         offset = 0
         limit = 50
         headers = {
-            'Accept' : 'application/json'
+            'Accept': 'application/json'
         }
         projects = []
         last_length = maxsize

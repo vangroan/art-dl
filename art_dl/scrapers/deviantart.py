@@ -89,7 +89,8 @@ class DeviantartScraper(Scraper):
         # TODO: Handle failure status
         return body
 
-    def scrape_deviation_image_url(self, deviation_guid, dev_page_html):
+    @staticmethod
+    def scrape_deviation_image_url(deviation_guid, dev_page_html):
         soup = BeautifulSoup(dev_page_html, 'html.parser')
         img_nodes = soup.select('img .dev-content-full')
         if not img_nodes:

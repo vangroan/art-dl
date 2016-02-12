@@ -22,6 +22,7 @@ class Application(object):
         def context_processor(ctx):
             ctx['http_client'] = http_client
             ctx['output_directory'] = output_directory
+
         return context_processor
 
     def run(self):
@@ -38,7 +39,7 @@ class Application(object):
 
         try:
             context_processor = self._create_context_processor(client, self.config.output_directory)
-            scrapers = [self.rules.dispatch(gallery, context_processor=context_processor) 
+            scrapers = [self.rules.dispatch(gallery, context_processor=context_processor)
                         for gallery in self.config.galleries]
 
             tasks = asyncio.gather(*(s.run() for s in scrapers))

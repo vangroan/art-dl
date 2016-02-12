@@ -17,9 +17,10 @@ class RegexRule(object):
 
     @staticmethod
     def _split_groups(regex_match):
-        '''Split groups in match into unnamed and named'''
+        """Split groups in match into unnamed and named
+        """
         # http://stackoverflow.com/questions/30293064/get-all-unnamed-groups-in-a-python-match-object
-        
+
         # Keep ordering so unnamed args will be added to
         # the tuple in the order they appear in the pattern
         named = OrderedDict()
@@ -28,12 +29,12 @@ class RegexRule(object):
         groupdict = regex_match.groupdict()
 
         # Index every named group by its span
-        for k,v in groupdict.items():
+        for k, v in groupdict.items():
             named[regex_match.span(k)] = v
 
         # Index every other group by its span, skipping groups with same 
         # span as a named group
-        for i,v in enumerate(all_groups):
+        for i, v in enumerate(all_groups):
             sp = regex_match.span(i + 1)
             if sp not in named:
                 unnamed[sp] = v
@@ -42,10 +43,10 @@ class RegexRule(object):
 
     def create_context(self, input_url, args, kwargs):
         return {
-            'pattern' : self._original_string,
-            'input' : input_url,
-            'args' : args,
-            'kwargs' : kwargs,
+            'pattern': self._original_string,
+            'input': input_url,
+            'args': args,
+            'kwargs': kwargs,
         }
 
     def execute(self, url, context_processor=None):
@@ -73,16 +74,16 @@ class RegexRule(object):
 class PatternRules(object):
 
     def __init__(self):
-        
+
         self._rules = []
 
     def add_rule(self, pattern, handler, inject_context=False):
 
         self._rules.append(RegexRule(
-                pattern,
-                handler,
-                inject_context
-            ))
+            pattern,
+            handler,
+            inject_context
+        ))
 
     def dispatch(self, url, context_processor=None):
         for rule in self._rules:
