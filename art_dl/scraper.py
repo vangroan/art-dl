@@ -10,6 +10,7 @@ from abc import ABCMeta, abstractmethod
 import asyncio
 from asyncio import coroutine
 from collections import namedtuple
+import imghdr
 import os
 from shutil import move
 
@@ -18,7 +19,6 @@ class ScrapingException(Exception): pass
 
 
 # TODO: Save urls to file for faster skipping of seen pages
-# TODO: Use the imghdr module to guess image filetype for files with no extension
 class Scraper(metaclass=ABCMeta):
 
     def __init__(self, http_client, logger, overwrite):
@@ -61,8 +61,12 @@ class Scraper(metaclass=ABCMeta):
                     break
                 fp.write(chunk)
 
-        move(partial_file, target_file)
         response.close()
+        move(partial_file, target_file)
+
+    @staticmethod
+    def guess_img_ext(filepath):
+        return imghdr.what(filepath)
 
     def debug(self, message):
         self.logger.debug(message)

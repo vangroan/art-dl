@@ -2,6 +2,7 @@
 from asyncio import coroutine, sleep
 from collections import namedtuple
 import os
+from shutil import move
 from sys import maxsize
 
 from art_dl.scraper import Scraper
@@ -85,6 +86,11 @@ class DrawcrowdScraper(Scraper):
             file_path = os.path.join(self.project_dir, filename)
             os.path.join(self.project_dir, file_path)
             yield from self.download(image_url, file_path, self.overwrite)
+
+            # Can only guess file extension after file is done downloading
+            if '.' not in filename:
+                file_ext = self.guess_img_ext(file_path)
+                move(file_path, file_path + '.' + file_ext)
 
         yield from sleep(0.001)
 
