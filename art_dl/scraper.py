@@ -6,6 +6,7 @@
 #   Methods for scraping pages start with 'scrape_*'
 #   The concrete scraper is responsible for choosing it's parsing tools
 
+from abc import ABCMeta, abstractmethod
 import asyncio
 from asyncio import coroutine
 from collections import namedtuple
@@ -18,7 +19,7 @@ class ScrapingException(Exception): pass
 
 # TODO: Save urls to file for faster skipping of seen pages
 # TODO: Use the imghdr module to guess image filetype for files with no extension
-class Scraper:
+class Scraper(metaclass=ABCMeta):
 
     def __init__(self, http_client, logger):
         self.client = http_client
@@ -69,6 +70,7 @@ class Scraper:
     def warn(self, message):
         self.logger.warn(message)
 
+    @abstractmethod
     @coroutine
     def run(self):
         raise NotImplementedError('run() is not implemented for %s' % self)
