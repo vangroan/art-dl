@@ -133,9 +133,11 @@ class DeviantartScraper(Scraper):
                 yield from self.download_deviation(image_url, image_filename)
             elif dev.medium == 'document':
                 # TODO: Handle text deviation
-                self.warn('Ignoring text deviation [%s]' % dev.url)
+                self.warn('Ignoring text deviation %s' % dev.url)
+            elif not dev.medium:
+                self.warn('Media type not specified %s' % dev.url)
             else:
-                raise ScrapingException('Unknown medium type %s for [%s]' % (dev.medium, dev.url))
+                raise ScrapingException('Unknown medium type %s for %s' % (dev.medium, dev.url))
 
         yield from sleep(0.001)
 
