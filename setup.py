@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='art-dl',
-    version='2016.02.12',
+    version='2016.02.13',
     packages=['art_dl', 'art_dl.scrapers'],
     install_requires=[
         'aiohttp',
