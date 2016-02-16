@@ -46,7 +46,7 @@ class PatternRulesTests(unittest.TestCase):
 
         f.assert_called_with('foo', '0042')
 
-    def test_dispatch_with_kwrags(self):
+    def test_dispatch_with_kwargs(self):
         rules = PatternRules()
         f = Mock()
         rules.add_rule(r'^http://my\.test\.com/(?P<title>[a-zA-Z]+)/([0-9]{4})/$', f)
