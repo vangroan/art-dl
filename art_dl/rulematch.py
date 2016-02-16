@@ -85,6 +85,12 @@ class PatternRules(object):
             inject_context
         ))
 
+    def add_rules(self, rules):
+        for r in rules:
+            if not isinstance(r, RegexRule):
+                raise TypeError("Attempt to add rule of type %s" % type(r))
+            self._rules.append(r)
+
     def dispatch(self, url, context_processor=None):
         for rule in self._rules:
             response = rule.execute(url, context_processor)
@@ -99,3 +105,7 @@ class PatternRules(object):
     def __iter__(self):
         for rule in self._rules:
             yield rule
+
+
+def rule(pattern, handler, inject_context=False):
+    return RegexRule(pattern, handler, inject_context)

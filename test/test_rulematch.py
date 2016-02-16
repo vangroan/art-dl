@@ -4,7 +4,7 @@ import sys, os
 import re
 
 sys.path.insert(0, os.path.join(os.pardir))
-from art_dl.rulematch import RegexRule, PatternRules, RuleException
+from art_dl.rulematch import RegexRule, PatternRules, RuleException, rule
 
 
 class RegexRuleTests(unittest.TestCase):
@@ -17,11 +17,21 @@ class RegexRuleTests(unittest.TestCase):
 
 
 class PatternRulesTests(unittest.TestCase):
+
     def test_adding_rules(self):
         rules = PatternRules()
         rules.add_rule(r'[a-z]', lambda: True)
 
         self.assertEqual(1, len(rules))
+
+    def test_adding_multiple_rules(self):
+        rules = PatternRules()
+        rules.add_rules((
+            rule(r'[a-z]', lambda: True),
+            rule(r'[0-9]', lambda: True)
+        ))
+
+        self.assertEqual(2, len(rules))
 
     def test_unhandled_exception(self):
         rules = PatternRules()
