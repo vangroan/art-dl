@@ -55,6 +55,7 @@ class ArtstationScraper(Scraper):
 
         return projects
 
+    @coroutine
     def fetch_project_image_url(self, project):
 
         image_urls = []
