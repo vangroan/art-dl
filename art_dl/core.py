@@ -5,7 +5,7 @@ import logging
 
 from art_dl.client import ThrottledClient
 from art_dl.rulematch import PatternRules
-from art_dl.rules import configure_rules
+from art_dl.rules import rules
 
 
 class Application(object):
@@ -16,7 +16,7 @@ class Application(object):
         self.rules = PatternRules()
         self.logger = self.create_logger('art-dl')
 
-        configure_rules(self.rules)
+        self.rules.add_rules(rules)
 
     @staticmethod
     def _create_context_processor(http_client, logger, output_directory, overwrite):
