@@ -145,4 +145,3 @@ class DeviantartScraper(Scraper):
 
     DeviationPage = namedtuple('DeviationPage', ['username', 'guid', 'url', 'medium', 'rating'])
 
-
