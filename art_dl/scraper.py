@@ -15,7 +15,8 @@ import os
 from shutil import move
 
 
-class ScrapingException(Exception): pass
+class ScrapingException(Exception):
+    pass
 
 
 # TODO: Save urls to file for faster skipping of seen pages
@@ -29,8 +30,8 @@ class Scraper(metaclass=ABCMeta):
     @coroutine
     def get(self, url, timeout=120, headers=None):
         return (yield from self.client.get_throttled(
-                                url, 
-                                timeout=timeout, 
+                                url,
+                                timeout=timeout,
                                 headers=headers))
 
     @coroutine
@@ -54,7 +55,8 @@ class Scraper(metaclass=ABCMeta):
 
         with open(partial_file, 'wb') as fp:
             chunk_queue = asyncio.Queue()
-            yield from self.client.throttled_content_read(response, chunk_queue)
+            yield from self.client.throttled_content_read(response,
+                                                          chunk_queue)
             while True:
                 chunk = yield from chunk_queue.get()
                 if not chunk:
@@ -83,6 +85,6 @@ class Scraper(metaclass=ABCMeta):
         raise NotImplementedError('run() is not implemented for %s' % self)
 
     def __repr__(self):
-        return '<%s>' % type(self).__name__ 
+        return '<%s>' % type(self).__name__
 
 ScraperResponse = namedtuple('ScraperResponse', ['scraper', 'task'])
