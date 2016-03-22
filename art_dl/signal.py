@@ -1,8 +1,10 @@
 
-class SignalRunningException(Exception): pass
+class SignalRunningException(Exception):
+    pass
 
 
-class CallbackNotFoundException(Exception): pass
+class CallbackNotFoundException(Exception):
+    pass
 
 
 class Slot:
@@ -68,7 +70,8 @@ class Signal:
 
     def remove_slot(self, slot):
         if self.running:
-            raise SignalRunningException('Slot cannot be detached while signalling')
+            raise SignalRunningException(
+                    'Slot cannot be detached while signalling')
         self._slots = list(filter(lambda el: el != slot, self._slots))
         slot.destroy()
 

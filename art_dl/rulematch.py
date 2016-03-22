@@ -3,7 +3,8 @@ from collections import OrderedDict
 import re
 
 
-class RuleException(Exception): pass
+class RuleException(Exception):
+    pass
 
 
 class RegexRule(object):
@@ -32,7 +33,7 @@ class RegexRule(object):
         for k, v in groupdict.items():
             named[regex_match.span(k)] = v
 
-        # Index every other group by its span, skipping groups with same 
+        # Index every other group by its span, skipping groups with same
         # span as a named group
         for i, v in enumerate(all_groups):
             sp = regex_match.span(i + 1)

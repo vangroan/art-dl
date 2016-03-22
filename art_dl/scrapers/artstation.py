@@ -17,7 +17,8 @@ class ArtstationScraper(Scraper):
 
     @classmethod
     def create_scraper(cls, ctx, username):
-        return cls(ctx['http_client'], ctx['logger'], username, ctx['output_directory'], ctx['overwrite'])
+        return cls(ctx['http_client'], ctx['logger'], username,
+                   ctx['output_directory'], ctx['overwrite'])
 
     @property
     def artist_dir(self):
@@ -25,8 +26,8 @@ class ArtstationScraper(Scraper):
 
     def projects_url(self, page_num):
         return 'https://www.artstation.com/users/{username}/projects.json?page={page}'.format(
-                username=self.username,
-                page=page_num,
+            username=self.username,
+            page=page_num,
         )
 
     def project_url(self, project):

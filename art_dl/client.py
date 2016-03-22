@@ -14,7 +14,7 @@ class ThrottledClient(ClientSession):
     def get_throttled(self, url, timeout, headers=None):
         with (yield from self._semaphore):
             # compress=True breaks DrawCrowd image download
-            return (yield from asyncio.wait_for(self.get(url, 
+            return (yield from asyncio.wait_for(self.get(url,
                                                 headers=headers), timeout))
 
     @coroutine

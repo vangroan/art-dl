@@ -19,7 +19,8 @@ class Application(object):
         self.rules.add_rules(rules)
 
     @staticmethod
-    def _create_context_processor(http_client, logger, output_directory, overwrite):
+    def _create_context_processor(http_client, logger,
+                                  output_directory, overwrite):
         def context_processor(ctx):
             ctx['http_client'] = http_client
             ctx['output_directory'] = output_directory
@@ -36,7 +37,8 @@ class Application(object):
         ch = logging.StreamHandler()
         ch.setLevel(logging.DEBUG)
 
-        fmt = logging.Formatter('%(asctime)s (%(name)s) [%(levelname)s] %(message)s')
+        fmt = logging.Formatter(
+            '%(asctime)s (%(name)s) [%(levelname)s] %(message)s')
         ch.setFormatter(fmt)
 
         logger.addHandler(ch)
@@ -68,9 +70,14 @@ class Application(object):
 
         try:
             # TODO: Needs readability
-            scrapers = [self.rules.dispatch(gallery, context_processor=self._create_context_processor(
-                client, self.create_logger(gallery), self.config.output_directory, self.config.overwrite))
-                for gallery in self.config.galleries]
+            scrapers = [self.rules.dispatch(
+                            gallery,
+                            context_processor=self._create_context_processor(
+                                client, self.create_logger(gallery),
+                                self.config.output_directory,
+                                self.config.overwrite)
+                            )
+                        for gallery in self.config.galleries]
 
             tasks = asyncio.gather(*(s.run() for s in scrapers))
             loop.run_until_complete(tasks)
