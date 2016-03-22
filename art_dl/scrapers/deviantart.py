@@ -36,7 +36,7 @@ class DeviantartScraper(Scraper):
     @staticmethod
     def create_scraper_for_gallery(ctx, username, gallery):
         # TODO: Set up scraper so that it downloads only a specified gallery
-        pass
+        raise NotImplementedError()
 
     def get_query_string(self):
         return 'gallery:{}'.format(self.username)
