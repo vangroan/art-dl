@@ -2,6 +2,7 @@
 from art_dl.scrapers.artstation import ArtstationScraper
 from art_dl.scrapers.deviantart import DeviantartScraper
 from art_dl.scrapers.drawcrowd import DrawcrowdScraper
+from art_dl.scrapers.tumblr import TumblrScraper
 from art_dl.rulematch import rule
 
 rules = (
@@ -11,4 +12,6 @@ rules = (
          DeviantartScraper.create_scraper, inject_context=True),
     rule(r'drawcrowd.com/(?P<username>[\w\d-]+)',
          DrawcrowdScraper.create_scraper, inject_context=True),
+    rule(r'(?P<username>[\w\d-]+)\.tumblr.com',
+         TumblrScraper.create_scraper, inject_context=True),
 )
