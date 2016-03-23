@@ -7,7 +7,8 @@ from art_dl.scraper import Scraper
 
 class TumblrScraper(Scraper):
 
-    _userurl = 'characterdesigninspiration.tumblr.com'
+    _userurl = 'http://{username}.tumblr.com'
+    _pageurl = 'http://{username}.tumblr.com/page/{pagenum}/'
 
     def __init__(self, http_client, logger, username, out_dir, overwrite):
         super().__init__(http_client, logger, overwrite)
