@@ -1,16 +1,18 @@
 package scrapers
 
 import (
+	"fmt"
 	"log"
+	"net/http"
 	"sync"
 	"time"
-	"net/http"
 
 	artdl "github.com/vangroan/art-dl"
 )
 
 const (
-	directory string = "deviantart"
+	directory     string = "deviantart"
+	galleryURLFmt string = "https://%s.deviantart.com/gallery"
 )
 
 type DeviantArtScraper struct {
@@ -19,7 +21,15 @@ type DeviantArtScraper struct {
 	seeds []string
 }
 
-func NewDeviantArtScraper(seedURLs []string, config *artdl.Config) artdl.Scraper {
+func NewDeviantArtScraper(ruleMatches []artdl.RuleMatch, config *artdl.Config) artdl.Scraper {
+	seedURLs := make([]string, len(ruleMatches))
+	for _, ruleMatch := range ruleMatches {
+		if ruleMatch.UserInfo == "" {
+			panic("DeviantArt scraper was instantiated with rules containing to user names")
+		}
+		seedURLs = append(seedURLs, fmt.Sprintf(galleryURLFmt, ruleMatch.UserInfo))
+	}
+
 	return &DeviantArtScraper{
 		baseScraper: baseScraper{
 			config: config,

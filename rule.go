@@ -25,26 +25,34 @@ func (resolver *RuleResolver) SetMappings(entries ...RuleEntry) {
 func (resolver *RuleResolver) Resolve(seedURLs []string) []Scraper {
 	scrapers := make([]Scraper, 0)
 	for _, rule := range resolver.entries {
-		ruleMatches := make([]RuleMatch, 0)
+		result := make([]RuleMatch, 0)
 
 		for _, url := range seedURLs {
-			groups := rule.pattern.SubexpNames()
-			matches := rule.pattern.FindStringSubmatch(url)
-
-			for groupIdx, group := range groups {
-				
-			}
-
 			if rule.pattern.MatchString(url) {
-				matches = append(matches, RuleMatch{
+				// Map capture groups for easier use
+				groups := rule.pattern.SubexpNames()
+				captures := rule.pattern.FindStringSubmatch(url)
+				matches := make(map[string]string)
+				for groupIdx, group := range groups {
+					if group == UserInfo {
+						matches[group] = captures[groupIdx]
+					}
+				}
+
+				ruleMatch := RuleMatch{
 					OrigURI: url,
-					UserInfo: 
-				})
+				}
+
+				if userInfo, ok := matches[UserInfo]; ok {
+					ruleMatch.UserInfo = userInfo
+				}
+
+				result = append(result, ruleMatch)
 			}
 		}
 
-		if len(matches) > 0 {
-			scrapers = append(scrapers, rule.factory(matches, nil))
+		if len(result) > 0 {
+			scrapers = append(scrapers, rule.factory(result, nil))
 		}
 	}
 	return scrapers
@@ -56,7 +64,7 @@ type RuleEntry struct {
 	factory RuleFactoryFunc
 }
 
-type RuleFactoryFunc func(matches []string, config *Config) Scraper
+type RuleFactoryFunc func(matches []RuleMatch, config *Config) Scraper
 
 func MapRule(pattern string, factory RuleFactoryFunc) RuleEntry {
 	return RuleEntry{
