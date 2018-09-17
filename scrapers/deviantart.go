@@ -4,6 +4,7 @@ import (
 	"log"
 	"sync"
 	"time"
+	"net/http"
 
 	artdl "github.com/vangroan/art-dl"
 )
@@ -41,6 +42,7 @@ func (s *DeviantArtScraper) Run(wg *sync.WaitGroup) {
 	defer close(toFetch)
 	defer close(toDownload)
 
+	// Copy URLs in goroutine so it keeps feeding fetch even if the channel is full
 	go func() {
 		for i := 0; i < len(s.seeds); i++ {
 			log.Printf("Seeding: %s\n", s.seeds[i])
@@ -59,7 +61,6 @@ func (s *DeviantArtScraper) Run(wg *sync.WaitGroup) {
 			s.download(url)
 		case t := <-ticker.C:
 			log.Println("Current time: ", t)
-			return
 		}
 		log.Println("Looping...")
 	}
@@ -67,6 +68,15 @@ func (s *DeviantArtScraper) Run(wg *sync.WaitGroup) {
 
 func (s *DeviantArtScraper) fetch(url string, toDownload chan string) {
 	log.Println("Fetching: ", url)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+
+	log.Printf("%+v", resp)
+
 	toDownload <- url
 }
 

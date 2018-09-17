@@ -8,3 +8,4 @@ import (
 type baseScraper struct {
 	config *artdl.Config
 }
+
