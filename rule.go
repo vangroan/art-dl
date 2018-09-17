@@ -33,9 +33,9 @@ func (resolver *RuleResolver) Resolve(seedURLs []string) []Scraper {
 				groups := rule.pattern.SubexpNames()
 				captures := rule.pattern.FindStringSubmatch(url)
 				matches := make(map[string]string)
-				for groupIdx, group := range groups {
+				for idx, group := range groups {
 					if group == UserInfo {
-						matches[group] = captures[groupIdx]
+						matches[group] = captures[idx]
 					}
 				}
 
