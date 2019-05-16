@@ -6,5 +6,5 @@ import (
 
 type Scraper interface {
 	GetName() string
-	Run(wg *sync.WaitGroup)
+	Run(wg *sync.WaitGroup) error
 }

@@ -68,12 +68,16 @@ func (s *DeviantArtScraper) GetName() string {
 }
 
 // Run starts the scraper
-func (s *DeviantArtScraper) Run(wg *sync.WaitGroup) {
+func (s *DeviantArtScraper) Run(wg *sync.WaitGroup) error {
 	defer wg.Done()
 
+	seedErrors := make(chan error)
+	toRssFetch := make(chan url.URL, 128)
 	toFetch := make(chan string, 128)
 	toDownload := make(chan string, 128)
 
+	defer close(seedErrors)
+	defer close(toRssFetch)
 	defer close(toFetch)
 	defer close(toDownload)
 
@@ -81,7 +85,12 @@ func (s *DeviantArtScraper) Run(wg *sync.WaitGroup) {
 	go func() {
 		for i := 0; i < len(s.seeds); i++ {
 			log.Printf("Seeding: %s\n", s.seeds[i])
-			toFetch <- s.seeds[i]
+
+			if u, err := url.Parse(s.seeds[i]); err == nil {
+				toRssFetch <- *u
+			} else {
+				seedErrors <- err
+			}
 		}
 	}()
 
@@ -90,6 +99,10 @@ func (s *DeviantArtScraper) Run(wg *sync.WaitGroup) {
 
 	for {
 		select {
+		case err := <-seedErrors:
+			return err
+		case url := <-toRssFetch:
+			s.fetchRss(url, toFetch)
 		case url := <-toFetch:
 			s.fetch(url, toDownload)
 		case url := <-toDownload:
@@ -99,6 +112,11 @@ func (s *DeviantArtScraper) Run(wg *sync.WaitGroup) {
 		}
 		log.Println("Looping...")
 	}
+}
+
+// fetchRss retireves the RSS XML from the url.
+func (s *DeviantArtScraper) fetchRss(u url.URL, toFetch chan string) {
+	log.Println("Fetching RSS: ", u.String())
 }
 
 func (s *DeviantArtScraper) fetch(url string, toDownload chan string) {
