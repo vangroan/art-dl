@@ -55,7 +55,7 @@ func (s *DeviantArtScraper) makeRssURL(username string) (*url.URL, error) {
 	rssQuery := "gallery:" + username
 
 	q := u.Query()
-	q.Set("type", "deviantion")
+	q.Set("type", "deviation")
 	q.Set("q", rssQuery)
 	u.RawQuery = q.Encode()
 
