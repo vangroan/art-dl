@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
@@ -13,14 +14,17 @@ import (
 const (
 	directory     string = "deviantart"
 	galleryURLFmt string = "https://%s.deviantart.com/gallery"
+	rssURL        string = "http://backend.deviantart.com/rss.xml"
 )
 
+// DeviantArtScraper scrapes galleries on deviantart.com
 type DeviantArtScraper struct {
 	baseScraper
 
 	seeds []string
 }
 
+// NewDeviantArtScraper creates a new deviantart scraper
 func NewDeviantArtScraper(ruleMatches []artdl.RuleMatch, config *artdl.Config) artdl.Scraper {
 	seedURLs := make([]string, len(ruleMatches))
 	for _, ruleMatch := range ruleMatches {
@@ -39,10 +43,31 @@ func NewDeviantArtScraper(ruleMatches []artdl.RuleMatch, config *artdl.Config) a
 	}
 }
 
+// makeRssURL creates a URL with the appropriate query parameters
+// for retrieving a user's gallery.
+func (s *DeviantArtScraper) makeRssURL(username string) (*url.URL, error) {
+	u, err := url.Parse(rssURL)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create RSS Query
+	rssQuery := "gallery:" + username
+
+	q := u.Query()
+	q.Set("type", "deviantion")
+	q.Set("q", rssQuery)
+	u.RawQuery = q.Encode()
+
+	return u, nil
+}
+
+// GetName returns a descriptive name for the scraper.
 func (s *DeviantArtScraper) GetName() string {
 	return "DeviantArt"
 }
 
+// Run starts the scraper
 func (s *DeviantArtScraper) Run(wg *sync.WaitGroup) {
 	defer wg.Done()
 
