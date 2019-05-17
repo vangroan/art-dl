@@ -1,7 +1,9 @@
 package scrapers
 
 import (
+	"encoding/xml"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -117,6 +119,32 @@ func (s *DeviantArtScraper) Run(wg *sync.WaitGroup) error {
 // fetchRss retireves the RSS XML from the url.
 func (s *DeviantArtScraper) fetchRss(u url.URL, toFetch chan string) {
 	log.Println("Fetching RSS: ", u.String())
+
+	res, err := http.Get(u.String())
+	if err != nil {
+		log.Println("Error : ", err)
+		return
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode == http.StatusOK {
+		bytes, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			log.Println("Error : ", err)
+			return
+		}
+
+		var model artdl.Channel
+		err = xml.Unmarshal(bytes, &model)
+		if err != nil {
+			log.Println("Error : ", err)
+			return
+		}
+
+		for _, item := range model.Items {
+			toFetch <- item.Link
+		}
+	}
 }
 
 func (s *DeviantArtScraper) fetch(url string, toDownload chan string) {
