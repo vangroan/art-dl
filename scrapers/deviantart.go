@@ -1,15 +1,13 @@
 package scrapers
 
 import (
-	"encoding/xml"
-	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
 	"sync"
 	"time"
 
+	"github.com/mmcdole/gofeed"
 	artdl "github.com/vangroan/art-dl/common"
 )
 
@@ -28,12 +26,18 @@ type DeviantArtScraper struct {
 
 // NewDeviantArtScraper creates a new deviantart scraper
 func NewDeviantArtScraper(ruleMatches []artdl.RuleMatch, config *artdl.Config) artdl.Scraper {
-	seedURLs := make([]string, len(ruleMatches))
+	seedURLs := make([]string, 0)
 	for _, ruleMatch := range ruleMatches {
 		if ruleMatch.UserInfo == "" {
-			panic("DeviantArt scraper was instantiated with rules containing to user names")
+			panic("DeviantArt scraper was instantiated with rules containing no user names")
 		}
-		seedURLs = append(seedURLs, fmt.Sprintf(galleryURLFmt, ruleMatch.UserInfo))
+		// seedURLs = append(seedURLs, fmt.Sprintf(galleryURLFmt, ruleMatch.UserInfo))
+
+		u, err := makeRssURL(ruleMatch.UserInfo)
+		if err != nil {
+			log.Fatal("Error : ", err)
+		}
+		seedURLs = append(seedURLs, u.String())
 	}
 
 	return &DeviantArtScraper{
@@ -45,9 +49,87 @@ func NewDeviantArtScraper(ruleMatches []artdl.RuleMatch, config *artdl.Config) a
 	}
 }
 
+// GetName returns a descriptive name for the scraper.
+func (s *DeviantArtScraper) GetName() string {
+	return "DeviantArt"
+}
+
+// Run starts the scraper
+func (s *DeviantArtScraper) Run(wg *sync.WaitGroup) error {
+	defer wg.Done()
+
+	toRssFetch := make(chan string, 128)
+	toDownload := make(chan string, 128)
+
+	defer close(toRssFetch)
+	defer close(toDownload)
+
+	// Copy URLs in goroutine so it keeps feeding fetch even if the channel is full
+	go func() {
+		for _, seedURL := range s.seeds {
+			log.Printf("Seeding: %s\n", seedURL)
+
+			toRssFetch <- seedURL
+		}
+	}()
+
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case url := <-toRssFetch:
+			s.fetchRss(url, toDownload)
+		case url := <-toDownload:
+			s.download(url)
+		case t := <-ticker.C:
+			log.Println("Current time: ", t)
+		}
+		log.Println("Looping...")
+	}
+}
+
+// fetchRss retireves the RSS XML from the url.
+func (s *DeviantArtScraper) fetchRss(u string, toDownload chan string) {
+	log.Println("Fetching RSS : ", u)
+
+	// Retrieve RSS feed
+	fp := gofeed.NewParser()
+	feed, err := fp.ParseURL(u)
+	if err != nil {
+		log.Println("Error : ", err)
+		return
+	}
+
+	log.Println("Feed : ", feed.Title)
+
+	// Schedule Image Downloads
+	for _, item := range feed.Items {
+		toDownload <- item.Content
+	}
+}
+
+func (s *DeviantArtScraper) fetch(url string, toDownload chan string) {
+	log.Println("Fetching : ", url)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+
+	log.Printf("%+v", resp)
+
+	toDownload <- url
+}
+
+func (s *DeviantArtScraper) download(url string) {
+	log.Println("Downloading : ", url)
+}
+
 // makeRssURL creates a URL with the appropriate query parameters
 // for retrieving a user's gallery.
-func (s *DeviantArtScraper) makeRssURL(username string) (*url.URL, error) {
+func makeRssURL(username string) (*url.URL, error) {
 	u, err := url.Parse(rssURL)
 	if err != nil {
 		return nil, err
@@ -62,105 +144,4 @@ func (s *DeviantArtScraper) makeRssURL(username string) (*url.URL, error) {
 	u.RawQuery = q.Encode()
 
 	return u, nil
-}
-
-// GetName returns a descriptive name for the scraper.
-func (s *DeviantArtScraper) GetName() string {
-	return "DeviantArt"
-}
-
-// Run starts the scraper
-func (s *DeviantArtScraper) Run(wg *sync.WaitGroup) error {
-	defer wg.Done()
-
-	seedErrors := make(chan error)
-	toRssFetch := make(chan url.URL, 128)
-	toFetch := make(chan string, 128)
-	toDownload := make(chan string, 128)
-
-	defer close(seedErrors)
-	defer close(toRssFetch)
-	defer close(toFetch)
-	defer close(toDownload)
-
-	// Copy URLs in goroutine so it keeps feeding fetch even if the channel is full
-	go func() {
-		for i, seed := range s.seeds {
-			log.Printf("Seeding: %s\n", s.seeds[i])
-
-			if u, err := url.Parse(seed); err == nil {
-				toRssFetch <- *u
-			} else {
-				seedErrors <- err
-			}
-		}
-	}()
-
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case err := <-seedErrors:
-			return err
-		case url := <-toRssFetch:
-			s.fetchRss(url, toFetch)
-		case url := <-toFetch:
-			s.fetch(url, toDownload)
-		case url := <-toDownload:
-			s.download(url)
-		case t := <-ticker.C:
-			log.Println("Current time: ", t)
-		}
-		log.Println("Looping...")
-	}
-}
-
-// fetchRss retireves the RSS XML from the url.
-func (s *DeviantArtScraper) fetchRss(u url.URL, toFetch chan string) {
-	log.Println("Fetching RSS: ", u.String())
-
-	res, err := http.Get(u.String())
-	if err != nil {
-		log.Println("Error : ", err)
-		return
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode == http.StatusOK {
-		bytes, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			log.Println("Error : ", err)
-			return
-		}
-
-		var model artdl.Channel
-		err = xml.Unmarshal(bytes, &model)
-		if err != nil {
-			log.Println("Error : ", err)
-			return
-		}
-
-		for _, item := range model.Items {
-			toFetch <- item.Link
-		}
-	}
-}
-
-func (s *DeviantArtScraper) fetch(url string, toDownload chan string) {
-	log.Println("Fetching: ", url)
-
-	resp, err := http.Get(url)
-	if err != nil {
-		log.Println(err.Error())
-		return
-	}
-
-	log.Printf("%+v", resp)
-
-	toDownload <- url
-}
-
-func (s *DeviantArtScraper) download(url string) {
-	log.Println("Downloading: ", url)
 }
