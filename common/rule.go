@@ -1,4 +1,4 @@
-package artdl
+package common
 
 import (
 	"regexp"

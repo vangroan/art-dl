@@ -1,4 +1,4 @@
-package artdl
+package common
 
 // Config holds the values passed into the application from the command line
 // or from files.

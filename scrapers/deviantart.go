@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	artdl "github.com/vangroan/art-dl"
+	artdl "github.com/vangroan/art-dl/common"
 )
 
 const (
@@ -85,10 +85,10 @@ func (s *DeviantArtScraper) Run(wg *sync.WaitGroup) error {
 
 	// Copy URLs in goroutine so it keeps feeding fetch even if the channel is full
 	go func() {
-		for i := 0; i < len(s.seeds); i++ {
+		for i, seed := range s.seeds {
 			log.Printf("Seeding: %s\n", s.seeds[i])
 
-			if u, err := url.Parse(s.seeds[i]); err == nil {
+			if u, err := url.Parse(seed); err == nil {
 				toRssFetch <- *u
 			} else {
 				seedErrors <- err

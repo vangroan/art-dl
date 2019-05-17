@@ -6,7 +6,7 @@ import (
 	"os"
 	"sync"
 
-	artdl "github.com/vangroan/art-dl"
+	artdl "github.com/vangroan/art-dl/common"
 	scrapers "github.com/vangroan/art-dl/scrapers"
 )
 

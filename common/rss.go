@@ -1,4 +1,4 @@
-package artdl
+package common
 
 type Channel struct {
 	Title string `xml:title`
