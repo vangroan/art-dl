@@ -89,7 +89,7 @@ func (s *DeviantArtScraper) Run(wg *sync.WaitGroup) error {
 	}
 }
 
-// fetchRss retireves the RSS XML from the url.
+// fetchRss retrieves the RSS XML from the url.
 func (s *DeviantArtScraper) fetchRss(u string, toDownload chan string) {
 	log.Println("Fetching RSS : ", u)
 
