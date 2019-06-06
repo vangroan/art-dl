@@ -20,9 +20,9 @@ func NewSemaphores() Semaphores {
 func (sem *Semaphores) Add(key string, concurrency int) error {
 	if _, ok := sem.inner[key]; ok {
 		return fmt.Errorf("Key %s already exists", key)
-	} else {
-		sem.inner[key] = make(chan struct{}, concurrency)
 	}
+
+	sem.inner[key] = make(chan struct{}, concurrency)
 
 	return nil
 }
@@ -37,9 +37,9 @@ func (sem *Semaphores) Acquire(key string) error {
 		semaphore <- struct{}{}
 
 		return nil
-	} else {
-		return fmt.Errorf("Key %s does not exist", key)
 	}
+
+	return fmt.Errorf("Key %s does not exist", key)
 }
 
 // Release frees up a slot at the given semaphore, allowing
@@ -51,7 +51,7 @@ func (sem *Semaphores) Release(key string) error {
 		<-semaphore
 
 		return nil
-	} else {
-		return fmt.Errorf("Key %s does not exist", key)
 	}
+
+	return fmt.Errorf("Key %s does not exist", key)
 }

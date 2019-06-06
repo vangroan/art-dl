@@ -9,7 +9,9 @@ type noopScraper struct{}
 
 func (s *noopScraper) GetName() string { return "NoOp" }
 
-func (s *noopScraper) Run(wg *sync.WaitGroup) {}
+func (s *noopScraper) Run(wg *sync.WaitGroup) error {
+	return nil
+}
 
 func TestResolve(t *testing.T) {
 	// Arrange
