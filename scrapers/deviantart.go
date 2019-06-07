@@ -130,7 +130,7 @@ func fetchRssStage(cancel <-chan struct{}, usernames <-chan string) <-chan downl
 	go func() {
 		defer close(out)
 
-	COMMANDS:
+	USERS:
 		for username := range usernames {
 
 			// DeviantArt's RSS feed returns maximum 60 items per request
@@ -148,7 +148,7 @@ func fetchRssStage(cancel <-chan struct{}, usernames <-chan string) <-chan downl
 
 				if err != nil {
 					log.Println("Error:", err)
-					continue COMMANDS
+					continue USERS
 				}
 
 				for _, item := range items {
