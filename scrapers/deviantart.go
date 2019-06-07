@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"sync"
 
 	"github.com/mmcdole/gofeed"
@@ -16,8 +17,7 @@ import (
 )
 
 const (
-	// DeviantArt's RSS feed returns maximum 60 items per request
-	offsetStep       int    = 60
+	navigationLimit  int    = 9999
 	directory        string = "deviantart"
 	concurrencyLevel int    = 8
 	galleryURLFmt    string = "https://%s.deviantart.com/gallery"
@@ -70,8 +70,8 @@ func (s *DeviantArtScraper) Run(wg *sync.WaitGroup) error {
 	defer close(cancel)
 
 	in := fetchCmdGen(s.seeds...)
-	fetchCommands := ensureExistsStage(cancel, in)
-	downloadCommands := fetchRssStage(cancel, fetchCommands)
+	usernames := ensureExistsStage(cancel, in)
+	downloadCommands := fetchRssStage(cancel, usernames)
 
 	filenames := make([]<-chan string, 0)
 	for i := 0; i < concurrencyLevel; i++ {
@@ -87,18 +87,18 @@ func (s *DeviantArtScraper) Run(wg *sync.WaitGroup) error {
 
 // ensureExistsStage creates an empty directory for
 // the user gallery if it doesn't exist.
-func ensureExistsStage(cancel <-chan struct{}, commands <-chan fetchCommand) <-chan fetchCommand {
-	out := make(chan fetchCommand)
+func ensureExistsStage(cancel <-chan struct{}, usernames <-chan string) <-chan string {
+	out := make(chan string)
 
 	go func() {
 		defer close(out)
 
-		for cmd := range commands {
-			_ = os.MkdirAll(filepath.Join(directory, cmd.username), os.ModePerm)
+		for username := range usernames {
+			_ = os.MkdirAll(filepath.Join(directory, username), os.ModePerm)
 
 			select {
 			// Forward command
-			case out <- cmd:
+			case out <- username:
 			case <-cancel:
 				return
 			}
@@ -108,24 +108,14 @@ func ensureExistsStage(cancel <-chan struct{}, commands <-chan fetchCommand) <-c
 	return out
 }
 
-type fetchCommand struct {
-	username string
-	rssURL   string
-}
-
-func fetchCmdGen(usernames ...string) <-chan fetchCommand {
-	out := make(chan fetchCommand)
+func fetchCmdGen(usernames ...string) <-chan string {
+	out := make(chan string)
 
 	go func() {
 		defer close(out)
 
 		for _, username := range usernames {
-			rssURL, err := makeRssURL(username, 0)
-			if err != nil {
-				log.Println("Error:", err)
-			}
-
-			out <- fetchCommand{rssURL: rssURL.String(), username: username}
+			out <- username
 		}
 	}()
 
@@ -134,27 +124,50 @@ func fetchCmdGen(usernames ...string) <-chan fetchCommand {
 
 // fetchRssStage is a pipeline stage that retrieves RSS documents
 // and feeds them into an output channel.
-func fetchRssStage(cancel <-chan struct{}, commands <-chan fetchCommand) <-chan downloadCommand {
+func fetchRssStage(cancel <-chan struct{}, usernames <-chan string) <-chan downloadCommand {
 	out := make(chan downloadCommand)
 
 	go func() {
 		defer close(out)
 
-		for cmd := range commands {
-			items, err := fetchRss(cmd.rssURL)
+	COMMANDS:
+		for username := range usernames {
 
-			if err != nil {
-				log.Println("Error:", err)
-				continue
-			}
+			// DeviantArt's RSS feed returns maximum 60 items per request
+			offset := 0
+		FETCHING:
+			for offset < navigationLimit {
+				log.Println("Offset:", offset)
 
-			for _, item := range items {
-				select {
-				case out <- downloadCommand{username: cmd.username, url: item}:
-				case <-cancel:
-					return
+				rssURL, err := makeRssURL(username, offset)
+				if err != nil {
+					log.Println("Error:", err)
 				}
+
+				items, err := fetchRss(rssURL.String())
+
+				if err != nil {
+					log.Println("Error:", err)
+					continue COMMANDS
+				}
+
+				for _, item := range items {
+					select {
+					case out <- downloadCommand{username: username, url: item}:
+					case <-cancel:
+						return
+					}
+				}
+
+				if len(items) > 0 {
+					// Continue navigating
+					offset += len(items)
+				} else {
+					break FETCHING
+				}
+
 			}
+
 		}
 	}()
 
@@ -297,7 +310,7 @@ func makeRssURL(username string, offset int) (*url.URL, error) {
 	q := u.Query()
 	q.Set("type", "deviation")
 	q.Set("q", rssQuery)
-	q.Set("offset", string(offset))
+	q.Set("offset", strconv.Itoa(offset))
 	u.RawQuery = q.Encode()
 
 	return u, nil
