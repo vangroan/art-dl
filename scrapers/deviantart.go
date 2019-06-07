@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/url"
 	"sync"
-	"time"
 
 	"github.com/mmcdole/gofeed"
 	artdl "github.com/vangroan/art-dl/common"
@@ -58,55 +57,85 @@ func (s *DeviantArtScraper) GetName() string {
 func (s *DeviantArtScraper) Run(wg *sync.WaitGroup) error {
 	defer wg.Done()
 
-	toRssFetch := make(chan string, 128)
-	toDownload := make(chan string, 128)
+	// TODO: Move the cancellation token out into main function
+	cancel := make(chan struct{})
+	defer close(cancel)
 
-	defer close(toRssFetch)
-	defer close(toDownload)
+	galleryURLs := artdl.IterateStrings(s.seeds...)
+	galleryItems := fetchRssStage(cancel, galleryURLs)
 
-	// Copy URLs in goroutine so it keeps feeding fetch even if the channel is full
+	for i := range galleryItems {
+		log.Println("Sink: ", i)
+	}
+
+	return nil
+}
+
+// fetchRssStage is a pipeline stage that retrieves RSS documents
+//  and feeds them into an output channel.
+func fetchRssStage(cancel <-chan struct{}, urls <-chan string) <-chan string {
+	out := make(chan string)
+
 	go func() {
-		for _, seedURL := range s.seeds {
-			log.Printf("Seeding: %s\n", seedURL)
+		defer close(out)
 
-			toRssFetch <- seedURL
+		for u := range urls {
+			items, err := fetchRss(u)
+
+			if err != nil {
+				log.Println("Error: ", err)
+				continue
+			}
+
+			for _, item := range items {
+				out <- item
+			}
 		}
 	}()
 
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case url := <-toRssFetch:
-			s.fetchRss(url, toDownload)
-		case url := <-toDownload:
-			s.download(url)
-		case t := <-ticker.C:
-			log.Println("Current time: ", t)
-		}
-		log.Println("Looping...")
-	}
+	return out
 }
 
-// fetchRss retrieves the RSS XML from the url.
-func (s *DeviantArtScraper) fetchRss(u string, toDownload chan string) {
+// fetchRss retrieves the RSS XML document from the url.
+//
+// Returns the image URLs conatined in the feed.
+func fetchRss(u string) ([]string, error) {
 	log.Println("Fetching RSS : ", u)
 
 	// Retrieve RSS feed
 	fp := gofeed.NewParser()
 	feed, err := fp.ParseURL(u)
 	if err != nil {
-		log.Println("Error : ", err)
-		return
+		return nil, err
 	}
 
 	log.Println("Feed : ", feed.Title)
 
+	result := make([]string, 0)
+
 	// Schedule Image Downloads
 	for _, item := range feed.Items {
-		toDownload <- item.Content
+		log.Println(item)
+		if media, ok := item.Extensions["media"]; ok {
+			if content, ok := media["content"]; ok {
+				if len(content) > 0 {
+					if contentURL, ok := content[0].Attrs["url"]; ok {
+						result = append(result, contentURL)
+					} else {
+						log.Println("Warning: RSS feed item 'media:content' has no child URL", feed.Title)
+					}
+				} else {
+					log.Println("Warning: RSS feed item has no 'media:content' children", feed.Title)
+				}
+			} else {
+				log.Println("Warning: RSS feed item 'media:content' not found for feed ", feed.Title)
+			}
+		} else {
+			log.Println("Warning: RSS feed item 'media' not found for feed ", feed.Title)
+		}
 	}
+
+	return result, nil
 }
 
 func (s *DeviantArtScraper) fetch(url string, toDownload chan string) {
