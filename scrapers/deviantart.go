@@ -16,6 +16,8 @@ import (
 )
 
 const (
+	// DeviantArt's RSS feed returns maximum 60 items per request
+	offsetStep       int    = 60
 	directory        string = "deviantart"
 	concurrencyLevel int    = 8
 	galleryURLFmt    string = "https://%s.deviantart.com/gallery"
@@ -26,23 +28,23 @@ const (
 type DeviantArtScraper struct {
 	baseScraper
 
-	seeds []fetchCommand
+	seeds []string
 }
 
 // NewDeviantArtScraper creates a new deviantart scraper
 func NewDeviantArtScraper(ruleMatches []artdl.RuleMatch, config *artdl.Config) artdl.Scraper {
-	seedURLs := make([]fetchCommand, 0)
+	seeds := make([]string, 0)
 	for _, ruleMatch := range ruleMatches {
 		if ruleMatch.UserInfo == "" {
 			panic("DeviantArt scraper was instantiated with rules containing no user names")
 		}
 
-		u, err := makeRssURL(ruleMatch.UserInfo)
-		if err != nil {
-			log.Fatal("Error : ", err)
-		}
+		// u, err := makeRssURL(ruleMatch.UserInfo, 0)
+		// if err != nil {
+		// 	log.Fatal("Error : ", err)
+		// }
 
-		seedURLs = append(seedURLs, fetchCommand{username: ruleMatch.UserInfo, rssURL: u.String()})
+		seeds = append(seeds, ruleMatch.UserInfo)
 	}
 
 	return &DeviantArtScraper{
@@ -50,7 +52,7 @@ func NewDeviantArtScraper(ruleMatches []artdl.RuleMatch, config *artdl.Config) a
 			config: config,
 		},
 
-		seeds: seedURLs,
+		seeds: seeds,
 	}
 }
 
@@ -111,14 +113,19 @@ type fetchCommand struct {
 	rssURL   string
 }
 
-func fetchCmdGen(commands ...fetchCommand) <-chan fetchCommand {
+func fetchCmdGen(usernames ...string) <-chan fetchCommand {
 	out := make(chan fetchCommand)
 
 	go func() {
 		defer close(out)
 
-		for _, cmd := range commands {
-			out <- cmd
+		for _, username := range usernames {
+			rssURL, err := makeRssURL(username, 0)
+			if err != nil {
+				log.Println("Error:", err)
+			}
+
+			out <- fetchCommand{rssURL: rssURL.String(), username: username}
 		}
 	}()
 
@@ -278,7 +285,7 @@ func downloadFile(fileURL string, targetFolder string) (string, error) {
 
 // makeRssURL creates a URL with the appropriate query parameters
 // for retrieving a user's gallery.
-func makeRssURL(username string) (*url.URL, error) {
+func makeRssURL(username string, offset int) (*url.URL, error) {
 	u, err := url.Parse(rssURL)
 	if err != nil {
 		return nil, err
@@ -290,6 +297,7 @@ func makeRssURL(username string) (*url.URL, error) {
 	q := u.Query()
 	q.Set("type", "deviation")
 	q.Set("q", rssQuery)
+	q.Set("offset", string(offset))
 	u.RawQuery = q.Encode()
 
 	return u, nil
