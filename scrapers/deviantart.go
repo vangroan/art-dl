@@ -16,9 +16,10 @@ import (
 )
 
 const (
-	directory     string = "deviantart"
-	galleryURLFmt string = "https://%s.deviantart.com/gallery"
-	rssURL        string = "http://backend.deviantart.com/rss.xml"
+	directory        string = "deviantart"
+	concurrencyLevel int    = 8
+	galleryURLFmt    string = "https://%s.deviantart.com/gallery"
+	rssURL           string = "http://backend.deviantart.com/rss.xml"
 )
 
 // DeviantArtScraper scrapes galleries on deviantart.com
@@ -69,10 +70,14 @@ func (s *DeviantArtScraper) Run(wg *sync.WaitGroup) error {
 	in := fetchCmdGen(s.seeds...)
 	fetchCommands := ensureExistsStage(cancel, in)
 	downloadCommands := fetchRssStage(cancel, fetchCommands)
-	filenames := downloadStage(cancel, downloadCommands)
 
-	for filename := range filenames {
-		log.Println("Done: ", filename)
+	filenames := make([]<-chan string, 0)
+	for i := 0; i < concurrencyLevel; i++ {
+		filenames = append(filenames, downloadStage(cancel, downloadCommands, i))
+	}
+
+	for filename := range artdl.MergeStrings(cancel, filenames...) {
+		log.Println("Done:", filename)
 	}
 
 	return nil
@@ -199,13 +204,15 @@ type downloadCommand struct {
 // and downloads the images to the target directory.
 //
 // Returns a channel of filepaths to the downloaded files.
-func downloadStage(cancel <-chan struct{}, commands <-chan downloadCommand) <-chan string {
+func downloadStage(cancel <-chan struct{}, commands <-chan downloadCommand, id int) <-chan string {
 	out := make(chan string)
 
 	go func() {
 		defer close(out)
 
 		for cmd := range commands {
+			log.Printf("Worker [%d] Downloading %s", id, cmd.url)
+
 			dir := filepath.Join(directory, cmd.username)
 			filepath, err := downloadFile(cmd.url, dir)
 			if err != nil {
@@ -242,7 +249,7 @@ func downloadFile(fileURL string, targetFolder string) (string, error) {
 	filepath := filepath.Join(targetFolder, filename)
 
 	// Ensure file does not exist
-	if _, err := os.Stat("/path/to/whatever"); os.IsExist(err) {
+	if _, err := os.Stat(filepath); os.IsExist(err) {
 		return "", fmt.Errorf("File '%s' exists", filepath)
 	}
 
