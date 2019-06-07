@@ -1,9 +1,14 @@
 package scrapers
 
 import (
+	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
+	"os"
+	"path"
+	"path/filepath"
 	"sync"
 
 	"github.com/mmcdole/gofeed"
@@ -20,23 +25,23 @@ const (
 type DeviantArtScraper struct {
 	baseScraper
 
-	seeds []string
+	seeds []fetchCommand
 }
 
 // NewDeviantArtScraper creates a new deviantart scraper
 func NewDeviantArtScraper(ruleMatches []artdl.RuleMatch, config *artdl.Config) artdl.Scraper {
-	seedURLs := make([]string, 0)
+	seedURLs := make([]fetchCommand, 0)
 	for _, ruleMatch := range ruleMatches {
 		if ruleMatch.UserInfo == "" {
 			panic("DeviantArt scraper was instantiated with rules containing no user names")
 		}
-		// seedURLs = append(seedURLs, fmt.Sprintf(galleryURLFmt, ruleMatch.UserInfo))
 
 		u, err := makeRssURL(ruleMatch.UserInfo)
 		if err != nil {
 			log.Fatal("Error : ", err)
 		}
-		seedURLs = append(seedURLs, u.String())
+
+		seedURLs = append(seedURLs, fetchCommand{username: ruleMatch.UserInfo, rssURL: u.String()})
 	}
 
 	return &DeviantArtScraper{
@@ -61,34 +66,82 @@ func (s *DeviantArtScraper) Run(wg *sync.WaitGroup) error {
 	cancel := make(chan struct{})
 	defer close(cancel)
 
-	galleryURLs := artdl.IterateStrings(s.seeds...)
-	galleryItems := fetchRssStage(cancel, galleryURLs)
+	in := fetchCmdGen(s.seeds...)
+	fetchCommands := ensureExistsStage(cancel, in)
+	downloadCommands := fetchRssStage(cancel, fetchCommands)
+	filenames := downloadStage(cancel, downloadCommands)
 
-	for i := range galleryItems {
-		log.Println("Sink: ", i)
+	for filename := range filenames {
+		log.Println("Done: ", filename)
 	}
 
 	return nil
 }
 
-// fetchRssStage is a pipeline stage that retrieves RSS documents
-//  and feeds them into an output channel.
-func fetchRssStage(cancel <-chan struct{}, urls <-chan string) <-chan string {
-	out := make(chan string)
+// ensureExistsStage creates an empty directory for
+// the user gallery if it doesn't exist.
+func ensureExistsStage(cancel <-chan struct{}, commands <-chan fetchCommand) <-chan fetchCommand {
+	out := make(chan fetchCommand)
 
 	go func() {
 		defer close(out)
 
-		for u := range urls {
-			items, err := fetchRss(u)
+		for cmd := range commands {
+			_ = os.MkdirAll(filepath.Join(directory, cmd.username), os.ModePerm)
+
+			select {
+			// Forward command
+			case out <- cmd:
+			case <-cancel:
+				return
+			}
+		}
+	}()
+
+	return out
+}
+
+type fetchCommand struct {
+	username string
+	rssURL   string
+}
+
+func fetchCmdGen(commands ...fetchCommand) <-chan fetchCommand {
+	out := make(chan fetchCommand)
+
+	go func() {
+		defer close(out)
+
+		for _, cmd := range commands {
+			out <- cmd
+		}
+	}()
+
+	return out
+}
+
+// fetchRssStage is a pipeline stage that retrieves RSS documents
+// and feeds them into an output channel.
+func fetchRssStage(cancel <-chan struct{}, commands <-chan fetchCommand) <-chan downloadCommand {
+	out := make(chan downloadCommand)
+
+	go func() {
+		defer close(out)
+
+		for cmd := range commands {
+			items, err := fetchRss(cmd.rssURL)
 
 			if err != nil {
-				log.Println("Error: ", err)
+				log.Println("Error:", err)
 				continue
 			}
 
 			for _, item := range items {
-				out <- item
+				select {
+				case out <- downloadCommand{username: cmd.username, url: item}:
+				case <-cancel:
+					return
+				}
 			}
 		}
 	}()
@@ -100,7 +153,7 @@ func fetchRssStage(cancel <-chan struct{}, urls <-chan string) <-chan string {
 //
 // Returns the image URLs conatined in the feed.
 func fetchRss(u string) ([]string, error) {
-	log.Println("Fetching RSS : ", u)
+	log.Println("Fetching RSS Feed:", u)
 
 	// Retrieve RSS feed
 	fp := gofeed.NewParser()
@@ -109,13 +162,12 @@ func fetchRss(u string) ([]string, error) {
 		return nil, err
 	}
 
-	log.Println("Feed : ", feed.Title)
+	log.Println("Feed :", feed.Title)
 
 	result := make([]string, 0)
 
 	// Schedule Image Downloads
 	for _, item := range feed.Items {
-		log.Println(item)
 		if media, ok := item.Extensions["media"]; ok {
 			if content, ok := media["content"]; ok {
 				if len(content) > 0 {
@@ -138,22 +190,83 @@ func fetchRss(u string) ([]string, error) {
 	return result, nil
 }
 
-func (s *DeviantArtScraper) fetch(url string, toDownload chan string) {
-	log.Println("Fetching : ", url)
-
-	resp, err := http.Get(url)
-	if err != nil {
-		log.Println(err.Error())
-		return
-	}
-
-	log.Printf("%+v", resp)
-
-	toDownload <- url
+type downloadCommand struct {
+	url      string
+	username string
 }
 
-func (s *DeviantArtScraper) download(url string) {
-	log.Println("Downloading : ", url)
+// downloadStage is a pipeline stage that takes a channel of download commands
+// and downloads the images to the target directory.
+//
+// Returns a channel of filepaths to the downloaded files.
+func downloadStage(cancel <-chan struct{}, commands <-chan downloadCommand) <-chan string {
+	out := make(chan string)
+
+	go func() {
+		defer close(out)
+
+		for cmd := range commands {
+			dir := filepath.Join(directory, cmd.username)
+			filepath, err := downloadFile(cmd.url, dir)
+			if err != nil {
+				log.Println("Error:", err)
+				continue
+			}
+
+			select {
+			case out <- filepath:
+			case <-cancel:
+				return
+			}
+		}
+	}()
+
+	return out
+}
+
+// downloadFile downloads a file to the target folder. If
+// a file with same name exists, the download will not
+// start.
+//
+// Returns the file path if the download was successful,
+// an error if the file already exists, or the download
+// failed.
+func downloadFile(fileURL string, targetFolder string) (string, error) {
+	// Determine filename
+	u, err := url.Parse(fileURL)
+	if err != nil {
+		return "", err
+	}
+
+	filename := path.Base(u.Path)
+	filepath := filepath.Join(targetFolder, filename)
+
+	// Ensure file does not exist
+	if _, err := os.Stat("/path/to/whatever"); os.IsExist(err) {
+		return "", fmt.Errorf("File '%s' exists", filepath)
+	}
+
+	// Start file download
+	resp, err := http.Get(fileURL)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	// Create new file
+	file, err := os.Create(filepath)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	// Stream download into file
+	_, err = io.Copy(file, resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	return filepath, nil
 }
 
 // makeRssURL creates a URL with the appropriate query parameters
