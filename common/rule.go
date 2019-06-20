@@ -30,10 +30,12 @@ func (resolver *RuleResolver) SetMappings(entries ...RuleEntry) {
 //
 // Returned scrapers are instantiated using the factory functions
 // given in the resolver's mapping.
-func (resolver *RuleResolver) Resolve(seedURLs []string) []Scraper {
-	scrapers := make([]Scraper, 0)
+func (resolver *RuleResolver) Resolve(seedURLs []string) []ScraperEntry {
+	scrapers := make(map[string]ScraperEntry, 0)
+	nextID := 1
+
 	for _, rule := range resolver.entries {
-		result := make([]RuleMatch, 0)
+		ruleMatches := make([]RuleMatch, 0)
 
 		for _, url := range seedURLs {
 			if rule.pattern.MatchString(url) {
@@ -55,32 +57,51 @@ func (resolver *RuleResolver) Resolve(seedURLs []string) []Scraper {
 					ruleMatch.UserInfo = ui
 				}
 
-				result = append(result, ruleMatch)
+				ruleMatches = append(ruleMatches, ruleMatch)
 			}
 		}
 
-		if len(result) > 0 {
-			scrapers = append(scrapers, rule.factory(result, nil))
+		if len(ruleMatches) > 0 {
+			// Check if we have an instance cached
+			entry, ok := scrapers[rule.name]
+
+			if !ok {
+				entry = ScraperEntry{scraper: rule.factory(nextID, ruleMatches, nil), seeds: make([]RuleMatch, 0)}
+				scrapers[rule.name] = entry
+				nextID++
+			}
+
+			for _, match := range ruleMatches {
+				entry.seeds = append(entry.seeds, match)
+			}
 		}
 	}
-	return scrapers
+
+	result := make([]ScraperEntry, 0)
+	for _, entry := range scrapers {
+		result = append(result, entry)
+	}
+
+	return result
 }
 
 // RuleEntry maps a regex pattern to a scraper factory.
 type RuleEntry struct {
 	pattern *regexp.Regexp
+	name    string
 	factory RuleFactoryFunc
 }
 
 // RuleFactoryFunc is factory function that is expected to
 // create an instance of a `Scraper`, given the parameters
 // in the rule match and config.
-type RuleFactoryFunc func(matches []RuleMatch, config *Config) Scraper
+type RuleFactoryFunc func(id int, matches []RuleMatch, config *Config) Scraper
 
 // MapRule is a helper for creating a `RuleEntry`.
-func MapRule(pattern string, factory RuleFactoryFunc) RuleEntry {
+func MapRule(pattern string, name string, factory RuleFactoryFunc) RuleEntry {
 	return RuleEntry{
 		pattern: regexp.MustCompile(pattern),
+		name:    name,
 		factory: factory,
 	}
 }
@@ -93,4 +114,9 @@ type RuleMatch struct {
 
 	// UserInfo is the username used to identify a gallery in the URI
 	UserInfo string
+}
+
+type ScraperEntry struct {
+	scraper Scraper
+	seeds   []RuleMatch
 }
