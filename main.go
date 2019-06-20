@@ -84,10 +84,10 @@ func main() {
 
 	// Run scrapers
 	var wg sync.WaitGroup
-	for _, scraper := range scrapers {
+	for _, entry := range scrapers {
 		log.Println("Starting up scraper")
 		wg.Add(1)
-		go scraper.Run(&wg)
+		go entry.Scraper.Run(&wg)
 	}
 	wg.Wait()
 	log.Println("Shutting down...")

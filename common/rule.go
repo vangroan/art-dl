@@ -66,13 +66,13 @@ func (resolver *RuleResolver) Resolve(seedURLs []string) []ScraperEntry {
 			entry, ok := scrapers[rule.name]
 
 			if !ok {
-				entry = ScraperEntry{scraper: rule.factory(nextID, ruleMatches, nil), seeds: make([]RuleMatch, 0)}
+				entry = ScraperEntry{Scraper: rule.factory(nextID, ruleMatches, nil), Seeds: make([]RuleMatch, 0)}
 				scrapers[rule.name] = entry
 				nextID++
 			}
 
 			for _, match := range ruleMatches {
-				entry.seeds = append(entry.seeds, match)
+				entry.Seeds = append(entry.Seeds, match)
 			}
 		}
 	}
@@ -117,6 +117,6 @@ type RuleMatch struct {
 }
 
 type ScraperEntry struct {
-	scraper Scraper
-	seeds   []RuleMatch
+	Scraper Scraper
+	Seeds   []RuleMatch
 }
