@@ -32,23 +32,19 @@ type DeviantArtScraper struct {
 }
 
 // NewDeviantArtScraper creates a new deviantart scraper
-func NewDeviantArtScraper(ruleMatches []artdl.RuleMatch, config *artdl.Config) artdl.Scraper {
+func NewDeviantArtScraper(id int, ruleMatches []artdl.RuleMatch, config *artdl.Config) artdl.Scraper {
 	seeds := make([]string, 0)
 	for _, ruleMatch := range ruleMatches {
 		if ruleMatch.UserInfo == "" {
 			panic("DeviantArt scraper was instantiated with rules containing no user names")
 		}
 
-		// u, err := makeRssURL(ruleMatch.UserInfo, 0)
-		// if err != nil {
-		// 	log.Fatal("Error : ", err)
-		// }
-
 		seeds = append(seeds, ruleMatch.UserInfo)
 	}
 
 	return &DeviantArtScraper{
 		baseScraper: baseScraper{
+			id:     id,
 			config: config,
 		},
 

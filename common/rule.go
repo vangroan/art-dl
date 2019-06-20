@@ -62,7 +62,7 @@ func (resolver *RuleResolver) Resolve(seedURLs []string) []ScraperEntry {
 		}
 
 		if len(ruleMatches) > 0 {
-			// Check if we have an instance cached
+			// Check if we have an entry cached
 			entry, ok := scrapers[rule.name]
 
 			if !ok {

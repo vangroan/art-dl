@@ -6,5 +6,6 @@ import (
 
 // baseScraper contains useful, commonly used operations.
 type baseScraper struct {
+	id int
 	config *artdl.Config
 }
