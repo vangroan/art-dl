@@ -102,7 +102,7 @@ type RuleFactoryFunc func(id int, matches []RuleMatch, config *Config) Scraper
 // MapRule is a helper for creating a `RuleEntry`.
 //
 // A rule maps a given regular expression pattern to a
-// factory function, which will instantiate an isntance
+// factory function, which will instantiate an instance
 // of a scraper.
 //
 // The given name associates different rules together. A
