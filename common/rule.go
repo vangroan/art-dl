@@ -25,7 +25,7 @@ func (resolver *RuleResolver) SetMappings(entries ...RuleEntry) {
 	resolver.entries = entries
 }
 
-// Resolve takes multiples URLs and matches them with its rule
+// Resolve takes multiple URLs and matches them with its rule
 // mappings. Each matched rule results in an instance of a scraper.
 //
 // Returned scrapers are instantiated using the factory functions
@@ -86,6 +86,8 @@ func (resolver *RuleResolver) Resolve(seedURLs []string) []ScraperEntry {
 }
 
 // RuleEntry maps a regex pattern to a scraper factory.
+//
+// The name associates different rules together.
 type RuleEntry struct {
 	pattern *regexp.Regexp
 	name    string
@@ -98,6 +100,15 @@ type RuleEntry struct {
 type RuleFactoryFunc func(id int, matches []RuleMatch, config *Config) Scraper
 
 // MapRule is a helper for creating a `RuleEntry`.
+//
+// A rule maps a given regular expression pattern to a
+// factory function, which will instantiate an isntance
+// of a scraper.
+//
+// The given name associates different rules together. A
+// scaper instance is cached against this name, and following
+// rules using the same name will not have their factories
+// called by the resolver.
 func MapRule(pattern string, name string, factory RuleFactoryFunc) RuleEntry {
 	return RuleEntry{
 		pattern: regexp.MustCompile(pattern),

@@ -22,8 +22,8 @@ func TestResolve(t *testing.T) {
 	}
 	resolver := NewRuleResolver()
 	resolver.SetMappings(
-		MapRule(`(?P<userinfo>[a-zA-Z0-9_-]+)\.deviantart\.com`, f),
-		MapRule(`(?P<userinfo>[a-zA-Z0-9_-]+)\.artstation\.com`, f),
+		MapRule(`(?P<userinfo>[a-zA-Z0-9_-]+)\.deviantart\.com`, "deviantart", f),
+		MapRule(`(?P<userinfo>[a-zA-Z0-9_-]+)\.artstation\.com`, "artstation", f),
 	)
 	urls := []string{
 		"https://one.deviantart.com",
