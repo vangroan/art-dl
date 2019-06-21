@@ -27,28 +27,15 @@ const (
 // DeviantArtScraper scrapes galleries on deviantart.com
 type DeviantArtScraper struct {
 	baseScraper
-
-	seeds []string
 }
 
 // NewDeviantArtScraper creates a new deviantart scraper
-func NewDeviantArtScraper(id int, ruleMatches []artdl.RuleMatch, config *artdl.Config) artdl.Scraper {
-	seeds := make([]string, 0)
-	for _, ruleMatch := range ruleMatches {
-		if ruleMatch.UserInfo == "" {
-			panic("DeviantArt scraper was instantiated with rules containing no user names")
-		}
-
-		seeds = append(seeds, ruleMatch.UserInfo)
-	}
-
+func NewDeviantArtScraper(id int, config *artdl.Config) artdl.Scraper {
 	return &DeviantArtScraper{
 		baseScraper: baseScraper{
 			id:     id,
 			config: config,
 		},
-
-		seeds: seeds,
 	}
 }
 
@@ -58,15 +45,15 @@ func (s *DeviantArtScraper) GetName() string {
 }
 
 // Run starts the scraper
-func (s *DeviantArtScraper) Run(wg *sync.WaitGroup) error {
+func (s *DeviantArtScraper) Run(wg *sync.WaitGroup, matches []artdl.RuleMatch) error {
 	defer wg.Done()
 
 	// TODO: Move the cancellation token out into main function
 	cancel := make(chan struct{})
 	defer close(cancel)
 
-	in := fetchCmdGen(s.seeds...)
-	usernames := ensureExistsStage(cancel, in)
+	seeds := seedGalleries(matches...)
+	usernames := ensureExistsStage(cancel, seeds)
 	downloadCommands := fetchRssStage(cancel, usernames)
 
 	filenames := make([]<-chan string, 0)
@@ -79,6 +66,25 @@ func (s *DeviantArtScraper) Run(wg *sync.WaitGroup) error {
 	}
 
 	return nil
+}
+
+// seedGalleries takes the matched rules and generates
+// a stream of gallery usernames.
+func seedGalleries(matches ...artdl.RuleMatch) <-chan string {
+	out := make(chan string)
+
+	go func() {
+		defer close(out)
+		for _, match := range matches {
+			if match.UserInfo == "" {
+				log.Fatal("DeviantArt scraper was instantiated with rules containing no user names")
+			}
+
+			out <- match.UserInfo
+		}
+	}()
+
+	return out
 }
 
 // ensureExistsStage creates an empty directory for
@@ -98,20 +104,6 @@ func ensureExistsStage(cancel <-chan struct{}, usernames <-chan string) <-chan s
 			case <-cancel:
 				return
 			}
-		}
-	}()
-
-	return out
-}
-
-func fetchCmdGen(usernames ...string) <-chan string {
-	out := make(chan string)
-
-	go func() {
-		defer close(out)
-
-		for _, username := range usernames {
-			out <- username
 		}
 	}()
 

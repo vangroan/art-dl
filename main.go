@@ -87,7 +87,7 @@ func main() {
 	for _, entry := range scrapers {
 		log.Println("Starting up scraper")
 		wg.Add(1)
-		go entry.Scraper.Run(&wg)
+		go entry.Scraper.Run(&wg, entry.Seeds)
 	}
 	wg.Wait()
 	log.Println("Shutting down...")

@@ -66,13 +66,11 @@ func (resolver *RuleResolver) Resolve(seedURLs []string) []ScraperEntry {
 			entry, ok := scrapers[rule.name]
 
 			if !ok {
-				entry = ScraperEntry{Scraper: rule.factory(nextID, ruleMatches, nil), Seeds: make([]RuleMatch, 0)}
+				entry = ScraperEntry{Scraper: rule.factory(nextID, nil), Seeds: ruleMatches}
 				scrapers[rule.name] = entry
 				nextID++
-			}
-
-			for _, match := range ruleMatches {
-				entry.Seeds = append(entry.Seeds, match)
+			} else {
+				entry.Seeds = append(entry.Seeds, ruleMatches...)
 			}
 		}
 	}
@@ -97,7 +95,7 @@ type RuleEntry struct {
 // RuleFactoryFunc is factory function that is expected to
 // create an instance of a `Scraper`, given the parameters
 // in the rule match and config.
-type RuleFactoryFunc func(id int, matches []RuleMatch, config *Config) Scraper
+type RuleFactoryFunc func(id int, config *Config) Scraper
 
 // MapRule is a helper for creating a `RuleEntry`.
 //
