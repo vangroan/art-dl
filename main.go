@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	version string = "2019.06.07"
+	version string = "2019.07.19"
 )
 
 type seedURLFlags []string
