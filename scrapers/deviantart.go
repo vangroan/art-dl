@@ -58,7 +58,11 @@ func (s *DeviantArtScraper) Run(wg *sync.WaitGroup, matches []artdl.RuleMatch) e
 
 	filenames := make([]<-chan string, 0)
 	for i := 0; i < concurrencyLevel; i++ {
-		filenames = append(filenames, downloadStage(cancel, downloadCommands, i))
+		// Avoid conflicting IDs with other scrapers by offsetting
+		// download worker ID by scraper's ID and expected number
+		// of downloaders.
+		id := s.id*concurrencyLevel + i
+		filenames = append(filenames, downloadStage(cancel, downloadCommands, id))
 	}
 
 	for filename := range artdl.MergeStrings(cancel, filenames...) {
