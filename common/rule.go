@@ -125,6 +125,8 @@ type RuleMatch struct {
 	UserInfo string
 }
 
+// ScraperEntry is a wrapper for the results of
+// a successfully resolved rule.
 type ScraperEntry struct {
 	Scraper Scraper
 	Seeds   []RuleMatch
