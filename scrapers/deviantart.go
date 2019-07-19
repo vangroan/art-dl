@@ -27,32 +27,15 @@ const (
 // DeviantArtScraper scrapes galleries on deviantart.com
 type DeviantArtScraper struct {
 	baseScraper
-
-	seeds []string
 }
 
 // NewDeviantArtScraper creates a new deviantart scraper
-func NewDeviantArtScraper(ruleMatches []artdl.RuleMatch, config *artdl.Config) artdl.Scraper {
-	seeds := make([]string, 0)
-	for _, ruleMatch := range ruleMatches {
-		if ruleMatch.UserInfo == "" {
-			panic("DeviantArt scraper was instantiated with rules containing no user names")
-		}
-
-		// u, err := makeRssURL(ruleMatch.UserInfo, 0)
-		// if err != nil {
-		// 	log.Fatal("Error : ", err)
-		// }
-
-		seeds = append(seeds, ruleMatch.UserInfo)
-	}
-
+func NewDeviantArtScraper(id int, config *artdl.Config) artdl.Scraper {
 	return &DeviantArtScraper{
 		baseScraper: baseScraper{
+			id:     id,
 			config: config,
 		},
-
-		seeds: seeds,
 	}
 }
 
@@ -62,20 +45,24 @@ func (s *DeviantArtScraper) GetName() string {
 }
 
 // Run starts the scraper
-func (s *DeviantArtScraper) Run(wg *sync.WaitGroup) error {
+func (s *DeviantArtScraper) Run(wg *sync.WaitGroup, matches []artdl.RuleMatch) error {
 	defer wg.Done()
 
 	// TODO: Move the cancellation token out into main function
 	cancel := make(chan struct{})
 	defer close(cancel)
 
-	in := fetchCmdGen(s.seeds...)
-	usernames := ensureExistsStage(cancel, in)
+	seeds := seedGalleries(matches...)
+	usernames := ensureExistsStage(cancel, seeds)
 	downloadCommands := fetchRssStage(cancel, usernames)
 
 	filenames := make([]<-chan string, 0)
 	for i := 0; i < concurrencyLevel; i++ {
-		filenames = append(filenames, downloadStage(cancel, downloadCommands, i))
+		// Avoid conflicting IDs with other scrapers by offsetting
+		// download worker ID by scraper's ID and expected number
+		// of downloaders.
+		id := s.id*concurrencyLevel + i
+		filenames = append(filenames, downloadStage(cancel, downloadCommands, id))
 	}
 
 	for filename := range artdl.MergeStrings(cancel, filenames...) {
@@ -83,6 +70,25 @@ func (s *DeviantArtScraper) Run(wg *sync.WaitGroup) error {
 	}
 
 	return nil
+}
+
+// seedGalleries takes the matched rules and generates
+// a stream of gallery usernames.
+func seedGalleries(matches ...artdl.RuleMatch) <-chan string {
+	out := make(chan string)
+
+	go func() {
+		defer close(out)
+		for _, match := range matches {
+			if match.UserInfo == "" {
+				log.Fatal("DeviantArt scraper was instantiated with rules containing no user names")
+			}
+
+			out <- match.UserInfo
+		}
+	}()
+
+	return out
 }
 
 // ensureExistsStage creates an empty directory for
@@ -102,20 +108,6 @@ func ensureExistsStage(cancel <-chan struct{}, usernames <-chan string) <-chan s
 			case <-cancel:
 				return
 			}
-		}
-	}()
-
-	return out
-}
-
-func fetchCmdGen(usernames ...string) <-chan string {
-	out := make(chan string)
-
-	go func() {
-		defer close(out)
-
-		for _, username := range usernames {
-			out <- username
 		}
 	}()
 
@@ -236,7 +228,7 @@ func downloadStage(cancel <-chan struct{}, commands <-chan downloadCommand, id i
 			dir := filepath.Join(directory, cmd.username)
 			filepath, err := downloadFile(cmd.url, dir)
 			if err != nil {
-				log.Println("Error:", err)
+				log.Printf("Worker [%d] Warning: %s", id, err)
 				continue
 			}
 
@@ -269,7 +261,7 @@ func downloadFile(fileURL string, targetFolder string) (string, error) {
 	filepath := filepath.Join(targetFolder, filename)
 
 	// Ensure file does not exist
-	if _, err := os.Stat(filepath); os.IsExist(err) {
+	if _, err := os.Stat(filepath); !os.IsNotExist(err) {
 		return "", fmt.Errorf("File '%s' exists", filepath)
 	}
 

@@ -2,12 +2,17 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"sync"
 
 	artdl "github.com/vangroan/art-dl/common"
 	scrapers "github.com/vangroan/art-dl/scrapers"
+)
+
+const (
+	version string = "2019.06.07"
 )
 
 type seedURLFlags []string
@@ -21,7 +26,7 @@ func (urls *seedURLFlags) Set(value string) error {
 	return nil
 }
 
-func parseFlags() artdl.Config {
+func parseFlags() (artdl.Config, bool) {
 	config := artdl.Config{}
 
 	cwd, err := os.Getwd()
@@ -29,33 +34,46 @@ func parseFlags() artdl.Config {
 		panic(err)
 	}
 
+	var printVersion bool
 	var seeds seedURLFlags
 
+	flag.BoolVar(&printVersion, "version", false, "Print art-dl version")
 	flag.StringVar(&config.Directory, "directory", cwd, "The target directory to save downloaded images. Default is current working directory.")
 	flag.Var(&seeds, "gallery", "Gallery URL")
 
 	flag.Parse()
 
+	if printVersion {
+		fmt.Printf("art-dl %s\n", version)
+		return config, true
+	}
+
 	config.SeedURLs = seeds
 
-	return config
+	return config, false
 }
 
 func main() {
-	log.Println("Starting...")
-
 	// Gather configuration from command line
-	config := parseFlags()
+
+	config, close := parseFlags()
+	if close {
+		return
+	}
+
 	if len(config.SeedURLs) == 0 {
 		log.Println("No galleries provided!")
 		return
 	}
+
+	log.Println("Starting...")
+
 	log.Printf("Config: %+v \n", config)
 
 	// Resolve rules
 	resolver := artdl.NewRuleResolver()
 	resolver.SetMappings(
-		artdl.MapRule(`(?P<userinfo>[a-zA-Z0-9_-]+)\.deviantart\.com`, scrapers.NewDeviantArtScraper),
+		artdl.MapRule(`(?P<userinfo>[a-zA-Z0-9_-]+)\.deviantart\.com`, "deviantart", scrapers.NewDeviantArtScraper),
 	)
 	scrapers := resolver.Resolve(config.SeedURLs)
 
@@ -66,10 +84,10 @@ func main() {
 
 	// Run scrapers
 	var wg sync.WaitGroup
-	for _, scraper := range scrapers {
+	for _, entry := range scrapers {
 		log.Println("Starting up scraper")
 		wg.Add(1)
-		go scraper.Run(&wg)
+		go entry.Scraper.Run(&wg, entry.Seeds)
 	}
 	wg.Wait()
 	log.Println("Shutting down...")
