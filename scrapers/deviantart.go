@@ -224,7 +224,7 @@ func downloadStage(cancel <-chan struct{}, commands <-chan downloadCommand, id i
 			dir := filepath.Join(directory, cmd.username)
 			filepath, err := downloadFile(cmd.url, dir)
 			if err != nil {
-				log.Println("Error:", err)
+				log.Printf("Worker [%d] Warning: %s", id, err)
 				continue
 			}
 
@@ -257,7 +257,7 @@ func downloadFile(fileURL string, targetFolder string) (string, error) {
 	filepath := filepath.Join(targetFolder, filename)
 
 	// Ensure file does not exist
-	if _, err := os.Stat(filepath); os.IsExist(err) {
+	if _, err := os.Stat(filepath); !os.IsNotExist(err) {
 		return "", fmt.Errorf("File '%s' exists", filepath)
 	}
 
