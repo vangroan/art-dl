@@ -73,7 +73,7 @@ func main() {
 	// Resolve rules
 	resolver := artdl.NewRuleResolver()
 	resolver.SetMappings(
-		artdl.MapRule(`(?P<userinfo>[a-zA-Z0-9_-]+)\.deviantart\.com`, scrapers.NewDeviantArtScraper),
+		artdl.MapRule(`(?P<userinfo>[a-zA-Z0-9_-]+)\.deviantart\.com`, "deviantart", scrapers.NewDeviantArtScraper),
 	)
 	scrapers := resolver.Resolve(config.SeedURLs)
 
@@ -84,10 +84,10 @@ func main() {
 
 	// Run scrapers
 	var wg sync.WaitGroup
-	for _, scraper := range scrapers {
+	for _, entry := range scrapers {
 		log.Println("Starting up scraper")
 		wg.Add(1)
-		go scraper.Run(&wg)
+		go entry.Scraper.Run(&wg, entry.Seeds)
 	}
 	wg.Wait()
 	log.Println("Shutting down...")
