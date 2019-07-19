@@ -5,5 +5,6 @@ package common
 type Config struct {
 	Directory        string
 	SeedURLs         []string
+	GalleryFile      string
 	ConcurrencyLevel int
 }

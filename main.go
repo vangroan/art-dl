@@ -40,6 +40,7 @@ func parseFlags() (artdl.Config, bool) {
 	flag.BoolVar(&printVersion, "version", false, "Print art-dl version")
 	flag.StringVar(&config.Directory, "directory", cwd, "The target directory to save downloaded images. Default is current working directory.")
 	flag.Var(&seeds, "gallery", "Gallery URL")
+	flag.StringVar(&config.GalleryFile, "file", "", "Gallery filename")
 
 	flag.Parse()
 
@@ -61,9 +62,17 @@ func main() {
 		return
 	}
 
+	if config.GalleryFile != "" {
+		urls, err := artdl.LoadGalleryFile(config.GalleryFile)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		config.SeedURLs = append(config.SeedURLs, urls...)
+	}
+
 	if len(config.SeedURLs) == 0 {
-		log.Println("No galleries provided!")
-		return
+		log.Fatalln("No galleries provided!")
 	}
 
 	log.Println("Starting...")
