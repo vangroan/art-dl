@@ -17,7 +17,7 @@
 *.out
 
 ### Go Patch ###
-/vendor/
+# /vendor/
 /Godeps/
 
 ### VisualStudioCode ###
@@ -32,3 +32,4 @@
 
 # Downloaded folders
 deviantart/
+galleries.txt
