@@ -3,9 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"sync"
+
+	log "github.com/sirupsen/logrus"
 
 	artdl "github.com/vangroan/art-dl/common"
 	scrapers "github.com/vangroan/art-dl/scrapers"
