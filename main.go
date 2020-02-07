@@ -62,6 +62,7 @@ func main() {
 	if close {
 		return
 	}
+	log.SetLevel(log.DebugLevel)
 
 	if config.GalleryFile != "" {
 		urls, err := artdl.LoadGalleryFile(config.GalleryFile)

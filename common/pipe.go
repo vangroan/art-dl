@@ -2,6 +2,8 @@ package common
 
 import (
 	"sync"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // IterateStrings takes multiple strings and
@@ -44,6 +46,31 @@ func MergeStrings(cancel <-chan struct{}, channels ...<-chan string) <-chan stri
 	go func() {
 		defer close(out)
 		wg.Wait()
+	}()
+
+	return out
+}
+
+// SeedGalleries is a pipeline producer takes
+// matched rules and generates a stream of
+// gallery usernames.
+func SeedGalleries(logger *log.Entry, matches ...RuleMatch) <-chan string {
+	out := make(chan string)
+	l := logger.WithFields(log.Fields{"stage": "SeedGalleries"})
+
+	go func() {
+		defer close(out)
+		for _, match := range matches {
+			if match.UserInfo == "" {
+				l.WithFields(log.Fields{"userinfo": match.UserInfo}).
+					Fatal("Scraper was instantiated with rules containing no user names")
+			}
+
+			l.WithFields(log.Fields{"userinfo": match.UserInfo}).
+				Debugf("Seeding gallery")
+
+			out <- match.UserInfo
+		}
 	}()
 
 	return out

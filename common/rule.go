@@ -2,6 +2,8 @@ package common
 
 import (
 	"regexp"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -56,6 +58,11 @@ func (resolver *RuleResolver) Resolve(seedURLs []string) []ScraperEntry {
 				if ui, ok := matches[userInfo]; ok {
 					ruleMatch.UserInfo = ui
 				}
+
+				log.WithFields(log.Fields{
+					"userinfo": ruleMatch.UserInfo,
+					"url":      ruleMatch.OrigURI,
+				}).Debugln("Rule matched")
 
 				ruleMatches = append(ruleMatches, ruleMatch)
 			}
