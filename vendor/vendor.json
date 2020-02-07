@@ -51,6 +51,24 @@
 			"revisionTime": "2018-10-12T15:49:47Z"
 		},
 		{
+			"checksumSHA1": "2bZ+mJynxTO75Rc9jcGBzee/sVo=",
+			"path": "github.com/sirupsen/logrus",
+			"revision": "947831125f318c2fb34bfc6205ee5d74994deb88",
+			"revisionTime": "2020-02-04T22:46:15Z"
+		},
+		{
+			"checksumSHA1": "jDsR9gpxYB6YBduE5qD8FmLiYv0=",
+			"path": "github.com/sirupsen/logrus/hooks/syslog",
+			"revision": "947831125f318c2fb34bfc6205ee5d74994deb88",
+			"revisionTime": "2020-02-04T22:46:15Z"
+		},
+		{
+			"checksumSHA1": "+SEEYlQ3V1UFOYrcM+5xsO9ow0U=",
+			"path": "github.com/sirupsen/logrus/internal/testutils",
+			"revision": "947831125f318c2fb34bfc6205ee5d74994deb88",
+			"revisionTime": "2020-02-04T22:46:15Z"
+		},
+		{
 			"checksumSHA1": "dK+OnaUYwvm0Ey/Z7Ox59youoo8=",
 			"path": "golang.org/x/net/html",
 			"revision": "3ec19112720433827bbce8be9342797f5a6aaaf9",
@@ -67,6 +85,12 @@
 			"path": "golang.org/x/net/html/charset",
 			"revision": "3ec19112720433827bbce8be9342797f5a6aaaf9",
 			"revisionTime": "2019-05-12T12:16:34Z"
+		},
+		{
+			"checksumSHA1": "ddfQNsKJE2BTjawN3BXRT7Tu86E=",
+			"path": "golang.org/x/sys/unix",
+			"revision": "d101bd2416d505c0448a6ce8a282482678040a89",
+			"revisionTime": "2020-02-02T16:37:14Z"
 		},
 		{
 			"checksumSHA1": "zSrR8Z4XmB4xKgfQasN/j6hQsJA=",
