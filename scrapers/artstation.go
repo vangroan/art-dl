@@ -28,6 +28,7 @@ func (s *ArtStationScraper) GetName() string {
 
 // Run starts the scraper
 func (s *ArtStationScraper) Run(wg *sync.WaitGroup, matches []artdl.RuleMatch) error {
+	defer wg.Done()
 
 	return nil
 }

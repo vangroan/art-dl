@@ -84,6 +84,7 @@ func main() {
 	resolver := artdl.NewRuleResolver()
 	resolver.SetMappings(
 		artdl.MapRule(`(?P<userinfo>[a-zA-Z0-9_-]+)\.deviantart\.com`, "deviantart", scrapers.NewDeviantArtScraper),
+		artdl.MapRule(`artstation.com/(?P<userinfo>[a-zA-Z0-9_-]+)`, "artstation", scrapers.NewArtStationScraper),
 	)
 	scrapers := resolver.Resolve(config.SeedURLs)
 
