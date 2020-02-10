@@ -43,7 +43,8 @@ func (s *ArtStationScraper) Run(wg *sync.WaitGroup, matches []artdl.RuleMatch) e
 	defer close(cancel)
 
 	seeds := artdl.SeedGalleries(logger, matches...)
-	for userinfo := range seeds {
+	usernames := artdl.EnsureExists(logger, "artstation", cancel, seeds)
+	for userinfo := range usernames {
 		logger.Infof("User: %s\n", userinfo)
 	}
 
