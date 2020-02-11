@@ -1,7 +1,11 @@
 package common
 
 import (
+	"os"
+	"path/filepath"
 	"sync"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // IterateStrings takes multiple strings and
@@ -44,6 +48,56 @@ func MergeStrings(cancel <-chan struct{}, channels ...<-chan string) <-chan stri
 	go func() {
 		defer close(out)
 		wg.Wait()
+	}()
+
+	return out
+}
+
+// SeedGalleries is a pipeline producer takes
+// matched rules and generates a stream of
+// gallery usernames.
+func SeedGalleries(logger *log.Entry, matches ...RuleMatch) <-chan string {
+	out := make(chan string)
+	l := logger.WithField("stage", "SeedGalleries")
+
+	go func() {
+		defer close(out)
+		for _, match := range matches {
+			if match.UserInfo == "" {
+				l.WithField("userinfo", match.UserInfo).
+					Fatal("Scraper was instantiated with rules containing no user names")
+			}
+
+			l.WithField("userinfo", match.UserInfo).
+				Debugf("Seeding gallery")
+
+			out <- match.UserInfo
+		}
+	}()
+
+	return out
+}
+
+// EnsureExists creates an empty directory for
+// the user gallery if it doesn't exist.
+func EnsureExists(logger *log.Entry, directory string, cancel <-chan struct{}, usernames <-chan string) <-chan string {
+	out := make(chan string)
+	l := log.WithField("stage", "EnsureExists")
+
+	go func() {
+		defer close(out)
+
+		for username := range usernames {
+			l.Debugf(filepath.Join(directory, username))
+			_ = os.MkdirAll(filepath.Join(directory, username), os.ModePerm)
+
+			select {
+			// Forward command
+			case out <- username:
+			case <-cancel:
+				return
+			}
+		}
 	}()
 
 	return out

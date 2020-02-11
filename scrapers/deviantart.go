@@ -75,6 +75,7 @@ func (s *DeviantArtScraper) Run(wg *sync.WaitGroup, matches []artdl.RuleMatch) e
 // seedGalleries takes the matched rules and generates
 // a stream of gallery usernames.
 func seedGalleries(matches ...artdl.RuleMatch) <-chan string {
+	// TODO: Replace with SeedGalleries in `common`
 	out := make(chan string)
 
 	go func() {
