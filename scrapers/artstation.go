@@ -8,12 +8,12 @@ import (
 	artdl "github.com/vangroan/art-dl/common"
 )
 
-// ArtStationScraper scrapers gallerie on artstation.com
+// ArtStationScraper scrapes galleries on artstation.com
 type ArtStationScraper struct {
 	baseScraper
 }
 
-// NewArtStationScraper creates a new deviantart scraper
+// NewArtStationScraper creates a new artstation scraper.
 func NewArtStationScraper(id int, config *artdl.Config) artdl.Scraper {
 	return &ArtStationScraper{
 		baseScraper: baseScraper{
