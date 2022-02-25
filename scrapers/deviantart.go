@@ -20,7 +20,7 @@ const (
 	navigationLimit  int    = 9999
 	directory        string = "deviantart"
 	concurrencyLevel int    = 8
-	galleryURLFmt    string = "https://%s.deviantart.com/gallery"
+	galleryURLFmt    string = "https://www.deviantart.com/%s/gallery"
 	rssURL           string = "http://backend.deviantart.com/rss.xml"
 )
 
@@ -262,7 +262,7 @@ func downloadFile(fileURL string, targetFolder string) (string, error) {
 
 	// Ensure file does not exist
 	if _, err := os.Stat(filepath); !os.IsNotExist(err) {
-		return "", fmt.Errorf("File '%s' exists", filepath)
+		return "", fmt.Errorf("file '%s' exists", filepath)
 	}
 
 	// Start file download
