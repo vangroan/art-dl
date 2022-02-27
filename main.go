@@ -9,7 +9,8 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	artdl "github.com/vangroan/art-dl/common"
-	scrapers "github.com/vangroan/art-dl/scrapers"
+	"github.com/vangroan/art-dl/scrapers/artstation"
+	"github.com/vangroan/art-dl/scrapers/deviantart"
 )
 
 const (
@@ -83,7 +84,8 @@ func main() {
 	// Resolve rules
 	resolver := artdl.NewRuleResolver()
 	resolver.SetMappings(
-		artdl.MapRule(`www\.deviantart\.com/(?P<userinfo>[a-zA-Z0-9_-]+)`, "deviantart", scrapers.NewDeviantArtScraper),
+		artdl.MapRule(deviantart.GalleryRule, "deviantart", deviantart.NewScraper),
+		artdl.MapRule(artstation.GalleryRule, "artstation", artstation.NewScraper),
 	)
 	scrapers := resolver.Resolve(config.SeedURLs)
 

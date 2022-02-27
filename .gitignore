@@ -32,6 +32,7 @@ go.work
 # End of https://www.toptal.com/developers/gitignore/api/go
 
 # Downloaded folders
-deviantart/
+/deviantart/
+/artstation/
 galleries.txt
-
+*-sample.json

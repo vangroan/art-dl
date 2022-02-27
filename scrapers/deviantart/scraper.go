@@ -1,4 +1,4 @@
-package scrapers
+package deviantart
 
 import (
 	"fmt"
@@ -17,6 +17,7 @@ import (
 )
 
 const (
+	GalleryRule      string = `www\.deviantart\.com/(?P<userinfo>[a-zA-Z0-9_-]+)`
 	navigationLimit  int    = 9999
 	directory        string = "deviantart"
 	concurrencyLevel int    = 8
@@ -26,15 +27,15 @@ const (
 
 // DeviantArtScraper scrapes galleries on deviantart.com
 type DeviantArtScraper struct {
-	baseScraper
+	artdl.BaseScraper
 }
 
-// NewDeviantArtScraper creates a new deviantart scraper
-func NewDeviantArtScraper(id int, config *artdl.Config) artdl.Scraper {
+// NewScraper creates a new deviantart scraper
+func NewScraper(id int, config *artdl.Config) artdl.Scraper {
 	return &DeviantArtScraper{
-		baseScraper: baseScraper{
-			id:     id,
-			config: config,
+		BaseScraper: artdl.BaseScraper{
+			ID:     id,
+			Config: config,
 		},
 	}
 }
@@ -61,7 +62,7 @@ func (s *DeviantArtScraper) Run(wg *sync.WaitGroup, matches []artdl.RuleMatch) e
 		// Avoid conflicting IDs with other scrapers by offsetting
 		// download worker ID by scraper's ID and expected number
 		// of downloaders.
-		id := s.id*concurrencyLevel + i
+		id := s.ID*concurrencyLevel + i
 		filenames = append(filenames, downloadStage(cancel, downloadCommands, id))
 	}
 
