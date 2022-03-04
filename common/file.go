@@ -58,16 +58,28 @@ func SanitizeFilename(filename string) string {
 // SanitizeDirname removes characters from the given directory
 // name which are reserved by file systems.
 func SanitizeDirname(dirname string) string {
+	var sanitized string
+
 	// We expect names from web sources.
-	unescaped := html.UnescapeString(dirname)
+	sanitized = html.UnescapeString(dirname)
+
+	// String excessive spaces
+	unspaced := regexp.MustCompile(`[\t\s\n]+`)
+	sanitized = unspaced.ReplaceAllString(sanitized, " ")
+
+	// Trim surrounding spaces
+	sanitized = strings.Trim(sanitized, " ")
+
 	// List of reserved characters from Wikipedia
 	// See: https://en.wikipedia.org/wiki/Filename#In_Windows
 	reserved := regexp.MustCompile(`[\\/\?\*\:\|\<\>\,\;\=]+`)
-	sanitized := reserved.ReplaceAllString(unescaped, "-")
+	sanitized = reserved.ReplaceAllString(sanitized, "-")
+
 	// Trailing periods are not allowed in Windows,
 	// but Unix allows a leading period to indicate
 	// hidden folder.
 	sanitized = strings.TrimRight(sanitized, ".")
+
 	// Double quotes are reserved, but single quotes are permitted.
 	return strings.ReplaceAll(sanitized, "\"", "'")
 }

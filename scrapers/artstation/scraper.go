@@ -290,7 +290,10 @@ func fetchProjectStage(cancel <-chan struct{}, commands <-chan downloadCommand, 
 
 func downloadProjectImage(username string, project string, url string) string {
 	dir := filepath.Join(directory, username, project)
-	_ = os.MkdirAll(dir, os.ModePerm)
+	err := os.MkdirAll(dir, os.ModePerm)
+	if err != nil {
+		log.Println("Error: ", err)
+	}
 
 	filepath, err := downloadFile(url, dir)
 	if err != nil {
