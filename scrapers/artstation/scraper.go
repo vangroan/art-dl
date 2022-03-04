@@ -246,12 +246,16 @@ func fetchProjectStage(cancel <-chan struct{}, commands <-chan downloadCommand, 
 				}
 				defer r.Body.Close()
 
+				// Deserialize JSON
 				var data ProjectData
 				err = json.NewDecoder(r.Body).Decode(&data)
 				if err != nil {
 					log.Println("Warning: Failed to decode JSON: ", err)
 					return
 				}
+
+				// Each project gets a folder in the user's directory.
+				projectDirname := artdl.SanitizeDirname(data.Title)
 
 				for _, asset := range data.Assets {
 					// Wrap in function to call defers
@@ -265,7 +269,7 @@ func fetchProjectStage(cancel <-chan struct{}, commands <-chan downloadCommand, 
 							}
 							defer r.Body.Close()
 
-							filepath := downloadProjectImage(cmd.username, projectID, asset.ImageUrl)
+							filepath := downloadProjectImage(cmd.username, projectDirname, asset.ImageUrl)
 
 							select {
 							case out <- filepath:
@@ -367,6 +371,7 @@ func makeRssURL(username string, offset int) (*url.URL, error) {
 }
 
 type ProjectData struct {
+	Title  string      `json:"title"`
 	Assets []AssetData `json:"assets"`
 }
 

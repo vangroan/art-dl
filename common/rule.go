@@ -31,7 +31,7 @@ func (resolver *RuleResolver) SetMappings(entries ...RuleEntry) {
 // Returned scrapers are instantiated using the factory functions
 // given in the resolver's mapping.
 func (resolver *RuleResolver) Resolve(seedURLs []string) []ScraperEntry {
-	scrapers := make(map[string]ScraperEntry, 0)
+	scrapers := make(map[string]ScraperEntry)
 	nextID := 1
 
 	for _, rule := range resolver.entries {
