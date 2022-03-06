@@ -1,13 +1,9 @@
 package deviantart
 
 import (
-	"fmt"
-	"io"
 	"log"
-	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"strconv"
 	"sync"
@@ -227,7 +223,7 @@ func downloadStage(cancel <-chan struct{}, commands <-chan downloadCommand, id i
 			log.Printf("Worker [%d] Downloading %s", id, cmd.url)
 
 			dir := filepath.Join(directory, cmd.username)
-			filepath, err := downloadFile(cmd.url, dir)
+			filepath, err := artdl.DownloadFile(cmd.url, dir, true)
 			if err != nil {
 				log.Printf("Worker [%d] Warning: %s", id, err)
 				continue
@@ -242,51 +238,6 @@ func downloadStage(cancel <-chan struct{}, commands <-chan downloadCommand, id i
 	}()
 
 	return out
-}
-
-// downloadFile downloads a file to the target folder. If
-// a file with same name exists, the download will not
-// start.
-//
-// Returns the file path if the download was successful,
-// an error if the file already exists, or the download
-// failed.
-func downloadFile(fileURL string, targetFolder string) (string, error) {
-	// Determine filename
-	u, err := url.Parse(fileURL)
-	if err != nil {
-		return "", err
-	}
-
-	filename := path.Base(u.Path)
-	filepath := filepath.Join(targetFolder, filename)
-
-	// Ensure file does not exist
-	if _, err := os.Stat(filepath); !os.IsNotExist(err) {
-		return "", fmt.Errorf("file '%s' exists", filepath)
-	}
-
-	// Start file download
-	resp, err := http.Get(fileURL)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	// Create new file
-	file, err := os.Create(filepath)
-	if err != nil {
-		return "", err
-	}
-	defer file.Close()
-
-	// Stream download into file
-	_, err = io.Copy(file, resp.Body)
-	if err != nil {
-		return "", err
-	}
-
-	return filepath, nil
 }
 
 // makeRssURL creates a URL with the appropriate query parameters
