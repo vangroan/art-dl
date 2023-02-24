@@ -20,16 +20,16 @@ github.com/mmcdole/goxpp
 # github.com/sirupsen/logrus v1.4.3-0.20200204224615-947831125f31
 ## explicit; go 1.13
 github.com/sirupsen/logrus
-# golang.org/x/net v0.0.0-20190514140710-3ec191127204
-## explicit
+# golang.org/x/net v0.7.0
+## explicit; go 1.17
 golang.org/x/net/html
 golang.org/x/net/html/atom
 golang.org/x/net/html/charset
-# golang.org/x/sys v0.0.0-20200202164722-d101bd2416d5
-## explicit; go 1.12
+# golang.org/x/sys v0.5.0
+## explicit; go 1.17
 golang.org/x/sys/unix
-# golang.org/x/text v0.3.2
-## explicit
+# golang.org/x/text v0.7.0
+## explicit; go 1.17
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
 golang.org/x/text/encoding/htmlindex
